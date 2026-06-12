@@ -95,4 +95,4 @@ webapp-evfc-api/
 
 ## Contact
 
-**Édumédiapole** — bruno.fernon@edumediapole.net
+**Édumédiapole** — bfernon@edumediapole.net
