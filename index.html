@@ -1,0 +1,2787 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVFC — Formateur Augmenté | Édumédiapole</title>
+
+<!-- Marked.js for Markdown rendering -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- docx.js -->
+<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+
+<style>
+  :root {
+    --navy: #002455;
+    --navy-light: #003580;
+    --red: #F0322C;
+    --red-soft: #ff5a56;
+
+    /* Light mode */
+    --bg: #f4f6fa;
+    --bg-card: #ffffff;
+    --bg-sidebar: #ffffff;
+    --bg-header: #002455;
+    --text: #1a1a2e;
+    --text-muted: #5a6a8a;
+    --text-header: #ffffff;
+    --border: #dde3f0;
+    --hover: #eef1f9;
+    --result-bg: #f8faff;
+    --badge-bg: #e8eeff;
+    --badge-text: #002455;
+    --input-bg: #f8faff;
+    --shadow: 0 2px 12px rgba(0,36,85,0.08);
+    --shadow-card: 0 4px 20px rgba(0,36,85,0.10);
+    --tag-intro: #7c3aed;
+    --tag-m0: #0891b2;
+    --tag-m1: #0284c7;
+    --tag-m2: #7c3aed;
+    --tag-m3: #059669;
+    --tag-m4: #d97706;
+    --tag-m5: #dc2626;
+    --tag-m6: #db2777;
+    --tag-m7: #374151;
+    --chain-bg: #fffbeb;
+    --chain-border: #fcd34d;
+  }
+
+  [data-theme="dark"] {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-sidebar: #161b22;
+    --bg-header: #010c1f;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-header: #ffffff;
+    --border: #30363d;
+    --hover: #21262d;
+    --result-bg: #0d1117;
+    --badge-bg: #1f2d4a;
+    --badge-text: #7eb3f7;
+    --input-bg: #0d1117;
+    --shadow: 0 2px 12px rgba(0,0,0,0.4);
+    --shadow-card: 0 4px 20px rgba(0,0,0,0.5);
+    --chain-bg: #1a1600;
+    --chain-border: #78350f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--bg-header);
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-logo {
+    width: 36px;
+    height: 36px;
+    background: var(--red);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 14px;
+    color: white;
+    letter-spacing: -0.5px;
+  }
+
+  .header-title {
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  .header-sub {
+    color: rgba(255,255,255,0.55);
+    font-size: 11px;
+    font-weight: 400;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-theme {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-theme:hover { background: rgba(255,255,255,0.18); }
+
+  .version-badge {
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  /* LAYOUT */
+  .app-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sidebar-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    padding: 8px 8px 4px;
+    margin-top: 4px;
+  }
+
+  .skill-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.18s;
+    background: var(--bg-card);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .skill-card:hover {
+    background: var(--hover);
+    border-color: var(--navy-light);
+    transform: translateX(2px);
+  }
+
+  .skill-card.active {
+    border-color: var(--navy);
+    background: var(--badge-bg);
+    box-shadow: var(--shadow);
+  }
+
+  .skill-card.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--red);
+    border-radius: 3px 0 0 3px;
+  }
+
+  .skill-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .skill-badge {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 20px;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .skill-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .skill-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 2px;
+  }
+
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .skill-panel {
+    padding: 24px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .panel-header {
+    margin-bottom: 20px;
+  }
+
+  .panel-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .panel-module-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    color: white;
+  }
+
+  .panel-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--navy);
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  [data-theme="dark"] .panel-title { color: #7eb3f7; }
+
+  .panel-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 700px;
+  }
+
+  /* CHAIN SUGGESTION */
+  .chain-block {
+    background: var(--chain-bg);
+    border: 1px solid var(--chain-border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .chain-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #92400e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  [data-theme="dark"] .chain-label { color: #fcd34d; }
+
+  .chain-items {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chain-item {
+    font-size: 11px;
+    background: rgba(0,36,85,0.08);
+    border: 1px solid rgba(0,36,85,0.15);
+    color: var(--navy);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  [data-theme="dark"] .chain-item {
+    background: rgba(126,179,247,0.1);
+    border-color: rgba(126,179,247,0.2);
+    color: #7eb3f7;
+  }
+
+  .chain-item:hover { opacity: 0.7; }
+  .chain-arrow { color: var(--text-muted); font-size: 12px; }
+
+  /* INPUT FORM */
+  .input-grid {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .field-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .field-required {
+    color: var(--red);
+    margin-left: 2px;
+  }
+
+  input[type="text"], textarea, select {
+    background: var(--input-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: inherit;
+    transition: border-color 0.2s;
+    width: 100%;
+    resize: vertical;
+  }
+
+  input[type="text"]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--navy);
+  }
+
+  textarea { min-height: 90px; }
+
+  select option { background: var(--bg-card); }
+
+  .input-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* GENERATE BUTTON */
+  .btn-generate {
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-generate:hover { background: var(--navy-light); transform: translateY(-1px); box-shadow: var(--shadow-card); }
+  .btn-generate:active { transform: translateY(0); }
+  .btn-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .btn-generate .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+
+  .btn-generate.loading .spinner { display: block; }
+  .btn-generate.loading .btn-text { display: none; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* RESULT ZONE */
+  .result-zone {
+    margin-top: 24px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-card);
+    box-shadow: var(--shadow);
+  }
+
+  .result-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--result-bg);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .result-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .result-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .result-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .btn-action {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    transition: all 0.15s;
+  }
+
+  .btn-action:hover { background: var(--hover); border-color: var(--navy); }
+
+  .btn-action.copy { color: var(--navy); }
+  .btn-action.pdf { color: var(--red); border-color: rgba(240,50,44,0.3); }
+  .btn-action.docx { color: #1D6F42; border-color: rgba(29,111,66,0.3); }
+  .btn-action.pdf:hover { background: rgba(240,50,44,0.05); }
+  .btn-action.docx:hover { background: rgba(29,111,66,0.05); }
+
+  .result-body {
+    padding: 24px;
+    max-height: 60vh;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .result-body h1, .result-body h2, .result-body h3 {
+    color: var(--navy);
+    margin: 16px 0 8px;
+    font-weight: 700;
+  }
+
+  [data-theme="dark"] .result-body h1,
+  [data-theme="dark"] .result-body h2,
+  [data-theme="dark"] .result-body h3 { color: #7eb3f7; }
+
+  .result-body h1 { font-size: 20px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+  .result-body h2 { font-size: 17px; }
+  .result-body h3 { font-size: 15px; }
+
+  .result-body p { margin-bottom: 10px; }
+  .result-body ul, .result-body ol { margin: 8px 0 10px 20px; }
+  .result-body li { margin-bottom: 4px; }
+
+  .result-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+
+  .result-body th {
+    background: var(--navy);
+    color: white;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  .result-body td {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+  }
+
+  .result-body tr:nth-child(even) td { background: var(--hover); }
+
+  .result-body code {
+    background: var(--badge-bg);
+    color: var(--red);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 12px;
+  }
+
+  .result-body pre {
+    background: var(--badge-bg);
+    border-radius: 8px;
+    padding: 14px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+
+  .result-body pre code {
+    background: none;
+    color: var(--text);
+    padding: 0;
+  }
+
+  .result-body blockquote {
+    border-left: 3px solid var(--red);
+    padding: 8px 16px;
+    margin: 12px 0;
+    background: rgba(240,50,44,0.05);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-muted);
+  }
+
+  .result-body strong { color: var(--navy); font-weight: 700; }
+  [data-theme="dark"] .result-body strong { color: #7eb3f7; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+  .empty-state p { font-size: 14px; }
+
+  /* WELCOME SCREEN */
+  .welcome-screen {
+    padding: 32px;
+    max-width: 800px;
+  }
+
+  .welcome-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--navy);
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  [data-theme="dark"] .welcome-title { color: #7eb3f7; }
+
+  .welcome-sub {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  .welcome-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .welcome-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+
+  .welcome-card:hover {
+    border-color: var(--navy);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+  }
+
+  .welcome-card-badge {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 20px;
+    color: white;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  .welcome-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+
+  .welcome-card-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  /* CHAIN FLOW */
+  .chain-flow {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-top: 20px;
+  }
+
+  .chain-flow-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .chain-flow-items {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .chain-flow-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chain-flow-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .chain-flow-btn:hover {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+
+  .chain-flow-btn.current {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+
+  .chain-flow-arrow {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* NEXT STEP SUGGESTION */
+  .next-step-block {
+    margin-top: 16px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(0,36,85,0.05) 0%, rgba(240,50,44,0.05) 100%);
+    border: 1.5px dashed var(--navy);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  [data-theme="dark"] .next-step-block { border-color: #7eb3f7; }
+
+  .next-step-text {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .next-step-text strong { color: var(--navy); }
+  [data-theme="dark"] .next-step-text strong { color: #7eb3f7; }
+
+  .btn-next-step {
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-next-step:hover { background: var(--navy-light); }
+
+  /* ── MODAL APPS SCRIPT ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal-box {
+    background: var(--bg-card);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 760px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+    overflow: hidden;
+    animation: slideUp 0.22s ease;
+  }
+
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .modal-header {
+    background: var(--navy);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .modal-title {
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .modal-tag {
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .modal-close {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.25); }
+
+  .modal-steps {
+    padding: 14px 20px;
+    background: var(--result-bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .modal-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .modal-step-num {
+    background: var(--navy);
+    color: white;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .modal-step-text { line-height: 1.5; }
+  .modal-step-text strong { color: var(--text); font-weight: 700; }
+
+  .modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    flex-shrink: 0;
+  }
+
+  .modal-tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .modal-tab:hover { color: var(--text); }
+  .modal-tab.active { color: var(--navy); border-bottom-color: var(--navy); }
+  [data-theme="dark"] .modal-tab.active { color: #7eb3f7; border-bottom-color: #7eb3f7; }
+
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    position: relative;
+  }
+
+  .modal-code-wrap {
+    position: relative;
+  }
+
+  .modal-copy-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 2;
+    transition: opacity 0.15s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .modal-copy-btn:hover { opacity: 0.85; }
+
+  .modal-code {
+    display: block;
+    background: #0d1117;
+    color: #e6edf3;
+    padding: 50px 20px 20px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    min-height: 200px;
+  }
+
+  .btn-action.forms {
+    color: #1a73e8;
+    border-color: rgba(26,115,232,0.3);
+  }
+  .btn-action.forms:hover { background: rgba(26,115,232,0.06); }
+
+  /* ── API KEY MODAL ── */
+  .apikey-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+  .apikey-modal-box {
+    background: var(--bg-card);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    overflow: hidden;
+    animation: slideUp 0.22s ease;
+  }
+  .apikey-modal-header {
+    background: var(--navy);
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .apikey-modal-header h2 { color: white; font-size: 15px; font-weight: 700; flex: 1; }
+  .apikey-modal-body { padding: 22px; }
+  .apikey-info {
+    background: var(--badge-bg);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .apikey-info strong { color: var(--text); }
+  .apikey-input-wrap { position: relative; margin-bottom: 14px; }
+  .apikey-input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 11px 44px 11px 14px;
+    font-size: 13px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    color: var(--text);
+    transition: border-color 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .apikey-input:focus { outline: none; border-color: var(--navy); }
+  .apikey-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    font-size: 16px; color: var(--text-muted); padding: 4px;
+  }
+  .apikey-actions { display: flex; gap: 10px; }
+  .btn-apikey-save {
+    flex: 1; background: var(--navy); color: white; border: none;
+    border-radius: 9px; padding: 11px; font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn-apikey-save:hover { opacity: 0.85; }
+  .btn-apikey-cancel {
+    background: var(--hover); color: var(--text-muted);
+    border: 1.5px solid var(--border); border-radius: 9px;
+    padding: 11px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-apikey-cancel:hover { border-color: var(--red); color: var(--red); }
+  .apikey-warning {
+    margin-top: 12px; font-size: 11px; color: var(--text-muted);
+    text-align: center; line-height: 1.5;
+  }
+  .key-status {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; border: 1px solid rgba(255,255,255,0.2);
+    color: white; background: rgba(255,255,255,0.08);
+  }
+  .key-status:hover { background: rgba(255,255,255,0.16); }
+  .key-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .key-status-dot.ok { background: #22c55e; }
+  .key-status-dot.missing { background: #ef4444; animation: pulse 1.5s ease-in-out infinite; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--navy);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { background: var(--red); }
+  .toast.success { background: #16a34a; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ── NAVIGATION BAR ── */
+  .nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 60px;
+    z-index: 90;
+  }
+
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Breadcrumb */
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+
+  .bc-item {
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 500;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .bc-item:hover { background: var(--hover); color: var(--text); }
+  .bc-item.home { color: var(--navy); font-weight: 700; }
+  [data-theme="dark"] .bc-item.home { color: #7eb3f7; }
+  .bc-item.active { color: var(--text); font-weight: 700; cursor: default; }
+  .bc-item.active:hover { background: transparent; }
+  .bc-sep { color: var(--border); font-size: 14px; }
+
+  /* Nav buttons */
+  .btn-nav {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-nav:hover { background: var(--hover); border-color: var(--navy); }
+  .btn-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-nav:disabled:hover { background: var(--bg-card); border-color: var(--border); }
+  .btn-nav.home-btn { color: var(--navy); border-color: rgba(0,36,85,0.25); }
+  [data-theme="dark"] .btn-nav.home-btn { color: #7eb3f7; border-color: rgba(126,179,247,0.25); }
+
+  /* Chain rail */
+  .chain-rail {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .chain-rail::-webkit-scrollbar { height: 3px; }
+
+  .rail-step {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+  }
+
+  .rail-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .rail-btn:hover { border-color: var(--navy); color: var(--text); background: var(--hover); }
+
+  .rail-btn.rail-active {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+
+  .rail-btn.rail-visited {
+    border-color: rgba(0,36,85,0.3);
+    color: var(--navy);
+    background: var(--badge-bg);
+  }
+
+  [data-theme="dark"] .rail-btn.rail-visited {
+    border-color: rgba(126,179,247,0.3);
+    color: #7eb3f7;
+    background: var(--badge-bg);
+  }
+
+  .rail-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  .rail-arrow {
+    color: var(--border);
+    font-size: 13px;
+    padding: 0 3px;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .app-layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .panel-title { font-size: 18px; }
+    .nav-bar { padding: 8px 12px; }
+    .chain-rail { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <div class="header-logo">ÉM</div>
+    <div>
+      <div class="header-title">Formateur Augmenté EVFC</div>
+      <div class="header-sub">Édumédiapole · Pack FPA</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="version-badge">v2.0</span>
+    <button class="key-status" id="key-status-btn" onclick="showApiKeyModal()" title="Configurer ta clé API Anthropic">
+      <span class="key-status-dot missing" id="key-status-dot"></span>
+      <span id="key-status-label">Clé API</span>
+    </button>
+    <button class="btn-theme" onclick="toggleTheme()">
+      <span id="theme-icon">🌙</span>
+      <span id="theme-label">Sombre</span>
+    </button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">🧭 Point d'entrée</div>
+    <!-- Skills injected by JS -->
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- NAV BAR (sticky under header) -->
+    <div class="nav-bar" id="nav-bar" style="display:none">
+      <div class="nav-left">
+        <button class="btn-nav home-btn" onclick="goHome()" title="Accueil (Échap)">⌂ Accueil</button>
+        <button class="btn-nav" id="btn-back" onclick="goBack()" disabled>← Retour</button>
+        <span style="color:var(--border); font-size:16px; padding:0 2px">|</span>
+        <div class="breadcrumb" id="breadcrumb"></div>
+      </div>
+      <div class="chain-rail" id="chain-rail"></div>
+    </div>
+
+    <div class="skill-panel" id="skill-panel">
+      <!-- Dynamic content -->
+    </div>
+  </main>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA — SKILLS DEFINITION
+// ─────────────────────────────────────────────
+const SKILLS = [
+  {
+    id: 'intro',
+    module: 'INTRO',
+    name: 'Simulateur EDC EVFC',
+    shortName: 'Découverte',
+    desc: 'Étude de cas guidée pour découvrir l\'écosystème EVFC avant toute production',
+    color: '#7c3aed',
+    chain: ['m1', 'm2'],
+    fields: [
+      { id: 'secteur', label: 'Secteur professionnel', type: 'text', placeholder: 'Ex: boulangerie, informatique, soins...', required: true },
+      { id: 'type_formation', label: 'Type de formation à concevoir', type: 'text', placeholder: 'Ex: atelier 1j sur la gestion des stocks', required: true },
+      { id: 'niveau', label: 'Niveau avec les outils IA', type: 'select', options: ['Débutant', 'Intermédiaire', 'Avancé'], required: false }
+    ],
+    systemPrompt: `Tu es l'assistant pédagogique EVFC de l'écosystème Édumédiapole. 
+Génère une étude de cas (EDC) annotée étape par étape pour un apprenant FPA découvrant l'écosystème EVFC.
+Inclus : énoncé du scénario fil rouge, skills mobilisés, prompts copy-paste, procédures, bonnes pratiques, résultats attendus.
+Termine par une invitation explicite à basculer vers la production réelle (evfc-sequence-designer ou prompt-pedagogique-optimizer).
+Utilise des titres clairs, des tableaux et des blocs formatés en Markdown.`
+  },
+  {
+    id: 'm0',
+    module: 'M0',
+    name: 'Progression Pédagogique',
+    shortName: 'Référentiel → Progression',
+    desc: 'Structure une formation complète depuis un référentiel ou bloc de compétences',
+    color: '#0891b2',
+    chain: ['m1'],
+    fields: [
+      { id: 'referentiel', label: 'Référentiel / Bloc de compétences', type: 'textarea', placeholder: 'Colle le référentiel, le bloc ou les objectifs de formation ici...', required: true },
+      { id: 'duree_totale', label: 'Durée totale disponible', type: 'text', placeholder: 'Ex: 35h, 5 jours, 3 semaines', required: true },
+      { id: 'public', label: 'Public apprenant', type: 'text', placeholder: 'Ex: formateurs FPA en reconversion', required: false },
+      { id: 'modalite', label: 'Modalité', type: 'select', options: ['Présentiel', 'FOAD', 'Hybride'], required: false }
+    ],
+    systemPrompt: `Tu es un ingénieur pédagogique expert en formation professionnelle d'adultes.
+À partir du référentiel ou bloc de compétences fourni, structure une progression pédagogique complète au format EVFC.
+Produis : architecture des séances (titre + durée + compétence + objectif observable), répartition horaire, jalons d'évaluation.
+Présente en tableau Markdown. Respecte la répartition EVFC : Écouter 15-20%, Voir 15-20%, Faire 45-55%, Consolider 10-15%.`
+  },
+  {
+    id: 'm1',
+    module: 'M1',
+    name: 'Séquence EVFC',
+    shortName: 'Séquence complète',
+    desc: 'Génère une séquence pédagogique complète en 4 phases EVFC',
+    color: '#0284c7',
+    chain: ['m3', 'm4', 'm5'],
+    fields: [
+      { id: 'competence', label: 'Compétence observable cible', type: 'text', placeholder: 'Ex: Configurer un réseau local en étoile sous Windows', required: true },
+      { id: 'public', label: 'Public apprenant', type: 'text', placeholder: 'Ex: Techniciens débutants en reconversion', required: true },
+      { id: 'duree', label: 'Durée de la séquence', type: 'text', placeholder: 'Ex: 3h30, demi-journée, 2 séances de 2h', required: true },
+      { id: 'contexte', label: 'Contexte professionnel / entreprise fictive', type: 'text', placeholder: 'Ex: NOVA Technology – DSI interne', required: false },
+      { id: 'modalite', label: 'Modalité', type: 'select', options: ['Présentiel', 'FOAD', 'Hybride'], required: false }
+    ],
+    systemPrompt: `Tu es un expert en ingénierie pédagogique utilisant la méthode EVFC (Écouter, Voir, Faire, Consolider).
+Génère une séquence pédagogique complète avec :
+- Objectif opérationnel reformulé (action observable)
+- Phase ÉCOUTER (15-20% du temps) : apports théoriques clés, supports
+- Phase VOIR (15-20%) : démonstration commentée étape par étape
+- Phase FAIRE (45-55%) : scénario pratique réaliste avec consignes précises
+- Phase CONSOLIDER (10-15%) : synthèse, transfert terrain, checklist de validation
+- Critères d'évaluation observables
+Présente sous forme structurée en Markdown avec tableaux et listes.`
+  },
+  {
+    id: 'm2',
+    module: 'M2',
+    name: 'Prompts Pédagogiques FPA',
+    shortName: 'IA + Prompts',
+    desc: '7 familles de prompts FPA + bibliothèque personnelle',
+    color: '#7c3aed',
+    chain: ['m1', 'm4'],
+    fields: [
+      { id: 'domaine', label: 'Domaine / Spécialité de formation', type: 'text', placeholder: 'Ex: IT, boulangerie, management, soins à la personne', required: true },
+      { id: 'famille', label: 'Famille de prompt souhaitée', type: 'select', options: ['Toutes les familles (bibliothèque complète)', 'Séquence EVFC', 'Scénario FAIRE', 'QCM/QRL', 'Grille critériée', 'Fiche formateur', 'Fiche E.R.A.', 'Validation output IA'], required: true },
+      { id: 'niveau_llm', label: 'Niveau avec les LLM', type: 'select', options: ['Débutant', 'Intermédiaire', 'Expert'], required: false }
+    ],
+    systemPrompt: `Tu es un expert en prompt engineering appliqué à la formation professionnelle d'adultes.
+Génère une bibliothèque de prompts pédagogiques FPA structurés en familles selon la demande.
+Pour chaque prompt, fournis : objectif, structure PTCF (Persona-Tâche-Contexte-Format), exemple complet copy-paste, conseils d'usage, variations possibles.
+Couvre les 7 familles FPA selon la demande. Présente en Markdown avec blocs de code pour les prompts.`
+  },
+  {
+    id: 'm3',
+    module: 'M3',
+    name: 'QCM / QRL Google Forms',
+    shortName: 'QCM + Apps Script',
+    desc: 'Génère QCM aligné EVFC au format CSV 9 colonnes + script Apps Script',
+    color: '#059669',
+    chain: ['m5'],
+    fields: [
+      { id: 'competence', label: 'Compétence / Contenu évalué', type: 'text', placeholder: 'Ex: Les fondamentaux des réseaux TCP/IP', required: true },
+      { id: 'phase', label: 'Phase EVFC cible', type: 'select', options: ['Écouter', 'Voir', 'Écouter + Voir'], required: true },
+      { id: 'nb_questions', label: 'Nombre de questions', type: 'select', options: ['5', '8', '10', '12', '15'], required: false },
+      { id: 'type_qcm', label: 'Type de questions', type: 'select', options: ['QCM (choix unique)', 'QCM (choix multiple)', 'Mixte QCM + QRL', 'Vrai/Faux + justification'], required: false }
+    ],
+    systemPrompt: `Tu es un expert en évaluation pédagogique alignée sur la méthode EVFC.
+Génère un QCM complet en Markdown avec :
+1. Tableau des questions avec : N°, Question, Type, Réponse correcte, Distracteurs, Feedback, Niveau Bloom
+2. CSV au format 9 colonnes pour Google Forms : Numéro,Question,TypeQuestion,Réponse1,Réponse2,Réponse3,Réponse4,BonneRéponse,Feedback
+3. Script Google Apps Script buildFormFromSheet() complet et commenté
+Aligne chaque question sur les objectifs EVFC des phases concernées. Assure la cohérence pédagogique.`
+  },
+  {
+    id: 'm4',
+    module: 'M4',
+    name: 'Scénarios FAIRE',
+    shortName: 'Mise en situation',
+    desc: 'Génère des scénarios pratiques ultra-réalistes pour la phase Faire',
+    color: '#d97706',
+    chain: ['m5', 'm6'],
+    fields: [
+      { id: 'competence', label: 'Compétence observable à évaluer', type: 'text', placeholder: 'Ex: Diagnostiquer une panne réseau en entreprise', required: true },
+      { id: 'contexte', label: 'Contexte professionnel', type: 'text', placeholder: 'Ex: PME de 20 salariés, NOVA Technology', required: true },
+      { id: 'niveau', label: 'Niveau de difficulté', type: 'select', options: ['Débutant', 'Intermédiaire', 'Avancé', 'Certificatif'], required: false },
+      { id: 'nb_scenarios', label: 'Nombre de scénarios', type: 'select', options: ['1 (scénario principal)', '3 (progressifs)', '5 (lot certif)'], required: false }
+    ],
+    systemPrompt: `Tu es un expert en ingénierie des situations professionnelles pour la formation d'adultes.
+Génère des scénarios FAIRE ultra-réalistes et directement exploitables en formation.
+Pour chaque scénario : contexte professionnel détaillé, rôle de l'apprenant, mission précise, ressources disponibles, contraintes, critères de réussite observables, variantes possibles, points de vigilance formateur.
+Les scénarios doivent être crédibles, directement transposables, évaluables sans ambiguïté. Format Markdown structuré.`
+  },
+  {
+    id: 'm5',
+    module: 'M5',
+    name: 'Grilles Critériées',
+    shortName: 'Grille d\'évaluation',
+    desc: 'Crée une grille d\'évaluation critériée observable et mesurable',
+    color: '#dc2626',
+    chain: ['m6'],
+    fields: [
+      { id: 'competence', label: 'Compétence ou scénario FAIRE à évaluer', type: 'textarea', placeholder: 'Décris la compétence ou colle le scénario FAIRE...', required: true },
+      { id: 'niveaux', label: 'Niveaux de maîtrise', type: 'select', options: ['2 niveaux (Acquis/Non acquis)', '3 niveaux (Débutant/En cours/Expert)', '4 niveaux (0-3)', 'Niveaux certificatifs RNCP'], required: false },
+      { id: 'format', label: 'Format de sortie', type: 'select', options: ['Grille formateur (observation)', 'Grille auto-évaluation apprenant', 'Les deux'], required: false }
+    ],
+    systemPrompt: `Tu es un expert en évaluation par compétences en formation professionnelle.
+Génère une grille d'évaluation critériée complète et directement exploitable.
+Inclus : critères observables (comportements concrets), indicateurs de maîtrise par niveau, descripteurs précis pour chaque case, pondération éventuelle, cases formateur/apprenant.
+La grille doit être observable SANS interprétation subjective. Présente sous forme de tableau Markdown détaillé.
+Ajoute une notice d'utilisation courte pour le formateur.`
+  },
+  {
+    id: 'm6',
+    module: 'M6',
+    name: 'Boucle E.R.A.',
+    shortName: 'Remédiation',
+    desc: 'Stratégies de remédiation Empathie-Résolution-Adhésion pour blocages apprenants',
+    color: '#db2777',
+    chain: ['m1'],
+    fields: [
+      { id: 'blocage', label: 'Description du blocage ou comportement observé', type: 'textarea', placeholder: 'Ex: L\'apprenant refuse de faire l\'exercice, dit "ça ne sert à rien"...', required: true },
+      { id: 'phase_evfc', label: 'Phase EVFC où le blocage survient', type: 'select', options: ['Écouter', 'Voir', 'Faire', 'Consolider', 'Hors séquence'], required: false },
+      { id: 'profil', label: 'Profil apprenant (si connu)', type: 'text', placeholder: 'Ex: adulte 45 ans, technicien, en reconversion forcée', required: false }
+    ],
+    systemPrompt: `Tu es un expert en pédagogie des adultes et gestion des situations difficiles en formation.
+Génère une fiche de remédiation complète utilisant la Boucle E.R.A. (Empathie, Résolution, Adhésion).
+Pour chaque étape ERA : posture formateur, phrases types à utiliser, ce qu'il faut ABSOLUMENT éviter, indicateurs que l'étape est réussie.
+Propose également 3 variantes d'intervention selon l'intensité du blocage (léger / modéré / fort).
+Termine par un plan d'action concret pour la suite de la séquence. Format Markdown structuré.`
+  },
+  {
+    id: 'm7',
+    module: 'M7',
+    name: 'Automatisation n8n',
+    shortName: 'Workflow n8n',
+    desc: 'Génère des workflows d\'automatisation pédagogique pour n8n',
+    color: '#374151',
+    chain: [],
+    fields: [
+      { id: 'objectif', label: 'Objectif d\'automatisation', type: 'textarea', placeholder: 'Ex: Envoyer automatiquement les livrables PDF aux apprenants après chaque séquence', required: true },
+      { id: 'declencheur', label: 'Déclencheur du workflow', type: 'text', placeholder: 'Ex: Webhook, formulaire Google, planning hebdo', required: false },
+      { id: 'outils', label: 'Outils à connecter', type: 'text', placeholder: 'Ex: Google Drive, Gmail, Notion, Google Forms', required: false },
+      { id: 'niveau_n8n', label: 'Niveau avec n8n', type: 'select', options: ['Débutant', 'Intermédiaire', 'Avancé'], required: false }
+    ],
+    systemPrompt: `Tu es un expert en automatisation pédagogique avec n8n pour formateurs FPA.
+Génère un workflow n8n complet avec :
+1. Description du flux étape par étape
+2. Nodes n8n à utiliser (type, configuration)
+3. JSON complet prêt à importer dans n8n
+4. Instructions d'installation et de test
+5. Points d'attention et gestion des erreurs
+Adapte la complexité au niveau n8n indiqué. Format Markdown avec bloc de code JSON.`
+  }
+];
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let currentSkill = null;
+let currentResult = '';
+let isDark = false;
+let navHistory = [];      // stack of skill ids visited
+let activeChain = [];     // current chain being navigated
+let resultCache = {};     // { skillId: lastGeneratedText }
+
+// ─────────────────────────────────────────────
+// THEME
+// ─────────────────────────────────────────────
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.getElementById('theme-icon').textContent = isDark ? '☀️' : '🌙';
+  document.getElementById('theme-label').textContent = isDark ? 'Clair' : 'Sombre';
+}
+
+// ─────────────────────────────────────────────
+// SIDEBAR RENDER
+// ─────────────────────────────────────────────
+function renderSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = '<div class="sidebar-section-label">🧭 Point d\'entrée</div>';
+
+  const sections = [
+    { label: '📚 Modules de formation', ids: ['intro', 'm0', 'm1', 'm2'] },
+    { label: '📝 Évaluation & Pratique', ids: ['m3', 'm4', 'm5'] },
+    { label: '🔧 Soutien & Automatisation', ids: ['m6', 'm7'] }
+  ];
+
+  sections.forEach((section, i) => {
+    if (i > 0) sidebar.innerHTML += `<div class="sidebar-section-label">${section.label}</div>`;
+    section.ids.forEach(id => {
+      const skill = SKILLS.find(s => s.id === id);
+      if (!skill) return;
+      const isActive = currentSkill && currentSkill.id === skill.id;
+      sidebar.innerHTML += `
+        <div class="skill-card ${isActive ? 'active' : ''}" onclick="selectSkill('${skill.id}')">
+          <div class="skill-header">
+            <span class="skill-badge" style="background:${skill.color}">${skill.module}</span>
+            <span class="skill-name">${skill.shortName}</span>
+          </div>
+          <div class="skill-desc">${skill.desc}</div>
+        </div>
+      `;
+    });
+  });
+}
+
+// ─────────────────────────────────────────────
+// WELCOME SCREEN
+// ─────────────────────────────────────────────
+function renderWelcome() {
+  const panel = document.getElementById('skill-panel');
+  panel.innerHTML = `
+    <div class="welcome-screen">
+      <div class="panel-badge">
+        <span style="font-size:28px">🎓</span>
+        <span class="version-badge" style="background:var(--navy)">Pack FPA</span>
+      </div>
+      <h1 class="welcome-title">Formateur Augmenté EVFC</h1>
+      <p class="welcome-sub">
+        Accède à l'intégralité du Pack Formation FPA depuis une seule interface.<br>
+        Sélectionne un skill dans la barre latérale, ou commence par le point d'entrée recommandé ci-dessous.
+      </p>
+
+      <div class="welcome-grid">
+        ${SKILLS.map(s => `
+          <div class="welcome-card" onclick="selectSkill('${s.id}')">
+            <span class="welcome-card-badge" style="background:${s.color}">${s.module}</span>
+            <div class="welcome-card-title">${s.shortName}</div>
+            <div class="welcome-card-desc">${s.desc}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="chain-flow">
+        <div class="chain-flow-title">⛓️ Chaîne de production recommandée</div>
+        <div class="chain-flow-items">
+          ${['intro', 'm0', 'm1', 'm4', 'm5', 'm6'].map((id, i, arr) => {
+            const s = SKILLS.find(x => x.id === id);
+            return `
+              <div class="chain-flow-step">
+                <button class="chain-flow-btn" onclick="selectSkill('${id}')">
+                  <span style="color:${s.color}">●</span> ${s.module} — ${s.shortName}
+                </button>
+                ${i < arr.length - 1 ? '<span class="chain-flow-arrow">→</span>' : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────
+
+// Resolve the full chain a skill belongs to (the canonical chains defined at welcome)
+const CANONICAL_CHAINS = [
+  ['intro', 'm0', 'm1', 'm4', 'm5', 'm6'],   // main production chain
+  ['m1', 'm3', 'm5'],                          // séquence → QCM → grille
+  ['m1', 'm4', 'm5', 'm6'],                    // séquence → faire → grille → ERA
+  ['m2', 'm1', 'm4'],                          // prompts → séquence → faire
+];
+
+function findChainForSkill(skillId) {
+  // Return the longest chain that contains this skill
+  let best = null;
+  for (const ch of CANONICAL_CHAINS) {
+    if (ch.includes(skillId)) {
+      if (!best || ch.length > best.length) best = ch;
+    }
+  }
+  return best || [skillId];
+}
+
+function selectSkill(skillId, pushHistory = true) {
+  if (pushHistory && currentSkill) {
+    navHistory.push(currentSkill.id);
+  }
+  currentSkill = SKILLS.find(s => s.id === skillId);
+  currentResult = '';
+
+  // Update active chain — keep existing if skill is in it, else resolve new
+  if (!activeChain.includes(skillId)) {
+    activeChain = findChainForSkill(skillId);
+  }
+
+  renderSidebar();
+  renderSkillPanel();
+  updateNav();
+}
+
+function goBack() {
+  if (navHistory.length === 0) return;
+  const prevId = navHistory.pop();
+  selectSkill(prevId, false);
+}
+
+function goHome() {
+  navHistory = [];
+  activeChain = [];
+  currentSkill = null;
+  currentResult = '';
+  renderSidebar();
+  renderWelcome();
+  document.getElementById('nav-bar').style.display = 'none';
+}
+
+function goToChainStart() {
+  if (activeChain.length === 0) return;
+  selectSkill(activeChain[0]);
+}
+
+function updateNav() {
+  const navBar = document.getElementById('nav-bar');
+  const btnBack = document.getElementById('btn-back');
+  const breadcrumb = document.getElementById('breadcrumb');
+  const chainRail = document.getElementById('chain-rail');
+
+  if (!currentSkill) { navBar.style.display = 'none'; return; }
+  navBar.style.display = 'flex';
+
+  // Back button state
+  btnBack.disabled = navHistory.length === 0;
+
+  // ── Breadcrumb ──
+  const crumbs = ['Accueil'];
+  // Add chain context if multi-step
+  if (activeChain.length > 1) {
+    const startSkill = SKILLS.find(s => s.id === activeChain[0]);
+    if (startSkill && startSkill.id !== currentSkill.id) {
+      crumbs.push(startSkill.module);
+    }
+  }
+  crumbs.push(`${currentSkill.module} — ${currentSkill.shortName}`);
+
+  breadcrumb.innerHTML = crumbs.map((c, i) => {
+    const isLast = i === crumbs.length - 1;
+    const isHome = i === 0;
+    if (isLast) return `<span class="bc-item active">${c}</span>`;
+    if (isHome) return `<span class="bc-item home" onclick="goHome()">${c}</span><span class="bc-sep">›</span>`;
+    // Middle crumb — go to chain start
+    return `<span class="bc-item" onclick="goToChainStart()">${c}</span><span class="bc-sep">›</span>`;
+  }).join('');
+
+  // ── Chain Rail ──
+  if (activeChain.length <= 1) { chainRail.innerHTML = ''; return; }
+
+  const currentIdx = activeChain.indexOf(currentSkill.id);
+
+  chainRail.innerHTML = activeChain.map((id, i) => {
+    const s = SKILLS.find(x => x.id === id);
+    const isActive = id === currentSkill.id;
+    const isVisited = navHistory.includes(id);
+    const cls = isActive ? 'rail-active' : isVisited ? 'rail-visited' : '';
+    const arrow = i < activeChain.length - 1 ? '<span class="rail-arrow">›</span>' : '';
+    return `
+      <div class="rail-step">
+        <button class="rail-btn ${cls}" onclick="selectSkill('${id}')" title="${s.name}">
+          <span class="rail-dot" style="background:${s.color}"></span>
+          ${s.module}
+        </button>
+        ${arrow}
+      </div>
+    `;
+  }).join('');
+}
+
+
+
+// ─────────────────────────────────────────────
+// SKILL PANEL RENDER
+// ─────────────────────────────────────────────
+function renderSkillPanel() {
+  const panel = document.getElementById('skill-panel');
+  const skill = currentSkill;
+
+  const chainHTML = skill.chain.length > 0 ? `
+    <div class="chain-block">
+      <span class="chain-label">⛓ Chaîne suivante</span>
+      <div class="chain-items">
+        ${skill.chain.map((cid, i) => {
+          const cs = SKILLS.find(s => s.id === cid);
+          return `
+            ${i > 0 ? '<span class="chain-arrow">→</span>' : ''}
+            <span class="chain-item" onclick="selectSkill('${cid}')" title="${cs.desc}">
+              ${cs.module} — ${cs.shortName}
+            </span>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const fieldsHTML = skill.fields.map(f => `
+    <div class="field-group">
+      <label class="field-label">${f.label}${f.required ? '<span class="field-required">*</span>' : ''}</label>
+      ${f.type === 'textarea' ? `<textarea id="field_${f.id}" placeholder="${f.placeholder}"></textarea>` :
+        f.type === 'select' ? `<select id="field_${f.id}">${f.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>` :
+        `<input type="text" id="field_${f.id}" placeholder="${f.placeholder}">`
+      }
+    </div>
+  `).join('');
+
+  // ── M5 : bloc contextuel M4 ──
+  const hasCachedM4 = !!resultCache['m4'];
+  const cameFromM4 = navHistory.includes('m4');
+
+  const m5ContextHTML = skill.id === 'm5' ? `
+    <div style="
+      margin-bottom: 16px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1.5px solid ${hasCachedM4 ? 'rgba(217,119,6,0.4)' : 'var(--border)'};
+      background: ${hasCachedM4 ? 'rgba(217,119,6,0.06)' : 'var(--hover)'};
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    ">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px">${hasCachedM4 ? '✅' : '💡'}</span>
+        <div>
+          <div style="font-size:12px; font-weight:700; color:${hasCachedM4 ? '#92400e' : 'var(--text-muted)'}; text-transform:uppercase; letter-spacing:0.5px;">
+            ${hasCachedM4 ? 'Scénario FAIRE disponible' : 'Conseil'}
+          </div>
+          <div style="font-size:13px; color:var(--text); margin-top:2px;">
+            ${hasCachedM4
+              ? `Ton scénario M4 a été injecté dans le champ ci-dessous. Tu peux le modifier avant de générer.`
+              : `Pour une grille plus précise, génère d'abord un scénario FAIRE en M4.`
+            }
+          </div>
+        </div>
+      </div>
+      ${!hasCachedM4 ? `
+        <button onclick="selectSkill('m4')" style="
+          background: #d97706; color: white; border: none;
+          border-radius: 8px; padding: 8px 14px;
+          font-size: 12px; font-weight: 700; cursor: pointer;
+          white-space: nowrap; transition: opacity 0.2s;
+          display: flex; align-items: center; gap: 6px;
+        " onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+          ← Générer un scénario FAIRE (M4)
+        </button>
+      ` : `
+        <button onclick="selectSkill('m4')" style="
+          background: transparent; color: #92400e;
+          border: 1.5px solid rgba(217,119,6,0.4);
+          border-radius: 8px; padding: 6px 12px;
+          font-size: 11px; font-weight: 600; cursor: pointer;
+          white-space: nowrap; transition: all 0.2s;
+        " onmouseover="this.style.background='rgba(217,119,6,0.1)'" onmouseout="this.style.background='transparent'">
+          ← Retour M4 pour modifier
+        </button>
+      `}
+    </div>
+  ` : '';
+
+  // ── M3 : bloc contextuel sources upstream ──
+  const M3_SOURCES = [
+    { id: 'm1', label: 'M1 — Séquence EVFC', color: '#0284c7', hint: 'compétence + phases Écouter/Voir' },
+    { id: 'm2', label: 'M2 — Prompts FPA',   color: '#7c3aed', hint: 'domaine + contexte pédagogique' },
+    { id: 'm0', label: 'M0 — Progression',   color: '#0891b2', hint: 'compétence de séance' },
+  ];
+  const availableSources = M3_SOURCES.filter(s => !!resultCache[s.id]);
+  const hasAnyCachedSource = availableSources.length > 0;
+
+  const m3ContextHTML = skill.id === 'm3' ? (() => {
+    if (hasAnyCachedSource) {
+      const sourceButtons = availableSources.map(s => `
+        <button onclick="prefillM3From('${s.id}')" style="
+          background: ${s.color}15; color: ${s.color};
+          border: 1.5px solid ${s.color}55;
+          border-radius: 8px; padding: 6px 12px;
+          font-size: 12px; font-weight: 700; cursor: pointer;
+          white-space: nowrap; transition: all 0.2s;
+          display: inline-flex; align-items: center; gap: 5px;
+        " onmouseover="this.style.background='${s.color}25'" onmouseout="this.style.background='${s.color}15'">
+          ✦ Utiliser ${s.label}
+          <span style="font-size:10px; font-weight:400; opacity:.7;">(${s.hint})</span>
+        </button>
+      `).join('');
+      return `
+        <div style="
+          margin-bottom: 16px; padding: 14px 16px; border-radius: 10px;
+          border: 1.5px solid #0284c755; background: #0284c708;
+        ">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <span style="font-size:18px">✅</span>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:#0284c7; text-transform:uppercase; letter-spacing:.5px;">Sources disponibles</div>
+              <div style="font-size:13px; color:var(--text); margin-top:2px;">Clique sur une source pour pré-remplir automatiquement les champs du QCM.</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">${sourceButtons}</div>
+        </div>`;
+    } else {
+      const navButtons = M3_SOURCES.map(s => `
+        <button onclick="selectSkill('${s.id}')" style="
+          background: var(--hover); color: var(--text-muted);
+          border: 1.5px solid var(--border);
+          border-radius: 8px; padding: 6px 12px;
+          font-size: 12px; font-weight: 600; cursor: pointer;
+          white-space: nowrap; transition: all 0.2s;
+        " onmouseover="this.style.borderColor='${s.color}';this.style.color='${s.color}'"
+           onmouseout="this.style.borderColor='';this.style.color=''">
+          ← ${s.label}
+        </button>
+      `).join('');
+      return `
+        <div style="
+          margin-bottom: 16px; padding: 14px 16px; border-radius: 10px;
+          border: 1.5px solid var(--border); background: var(--hover);
+        ">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <span style="font-size:18px">💡</span>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px;">Conseil</div>
+              <div style="font-size:13px; color:var(--text); margin-top:2px;">Pour un QCM aligné, génère d'abord une séquence en M1, M0 ou des prompts en M2.</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">${navButtons}</div>
+        </div>`;
+    }
+  })() : '';
+
+  panel.innerHTML = `
+    <div class="panel-header">
+      <div class="panel-badge">
+        <span class="panel-module-tag" style="background:${skill.color}">${skill.module}</span>
+        <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Pack FPA · Édumédiapole</span>
+      </div>
+      <h1 class="panel-title">${skill.name}</h1>
+      <p class="panel-desc">${skill.desc}</p>
+    </div>
+
+    ${chainHTML}
+    ${m5ContextHTML}
+    ${m3ContextHTML}
+
+    <div class="input-grid">
+      ${fieldsHTML}
+    </div>
+
+    <button class="btn-generate" id="btn-gen" onclick="generate()">
+      <div class="spinner"></div>
+      <span class="btn-text">⚡ Générer avec l'IA</span>
+    </button>
+
+    <div id="result-zone"></div>
+  `;
+
+  // ── M5 : pré-remplir le champ compétence depuis le cache M4 ──
+  if (skill.id === 'm5' && hasCachedM4) {
+    const compField = document.getElementById('field_competence');
+    if (compField && !compField.value) {
+      compField.value = extractCompetenceFromCache('m4', 800);
+      compField.style.borderColor = 'rgba(217,119,6,0.6)';
+      compField.title = 'Pré-rempli depuis le scénario M4';
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// CACHE EXTRACTION HELPERS
+// ─────────────────────────────────────────────
+
+// Generic: clean markdown text from a cached result, up to maxLen chars
+function extractCompetenceFromCache(skillId, maxLen = 600) {
+  const raw = resultCache[skillId] || '';
+  return raw
+    .replace(/#{1,4} /g, '')
+    .replace(/\*\*/g, '')
+    .replace(/^\s*[-*]\s/gm, '')
+    .replace(/`{1,3}[^`]*`{1,3}/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, maxLen);
+}
+
+// M3-specific: smarter extraction per source
+function extractForM3(sourceId) {
+  const text = resultCache[sourceId] || '';
+  if (!text) return { competence: '', phase: null };
+
+  // Try to extract the first observable objective line
+  const objMatch = text.match(/objectif[^:\n]*:\s*([^\n]{10,})/i)
+    || text.match(/compétence[^:\n]*:\s*([^\n]{10,})/i)
+    || text.match(/être capable[^\n]{5,}/i)
+    || text.match(/savoir[- ]faire[^:\n]*:\s*([^\n]{10,})/i);
+
+  let competence = objMatch
+    ? (objMatch[1] || objMatch[0]).replace(/\*\*/g, '').trim().slice(0, 300)
+    : extractCompetenceFromCache(sourceId, 300);
+
+  // Try to detect phase hint from M1 (Écouter / Voir sections)
+  let phase = null;
+  if (sourceId === 'm1') {
+    const hasEcouter = /écouter|ecouter/i.test(text);
+    const hasVoir    = /\bvoir\b/i.test(text);
+    if (hasEcouter && hasVoir) phase = 'Écouter + Voir';
+    else if (hasEcouter)       phase = 'Écouter';
+    else if (hasVoir)          phase = 'Voir';
+  }
+
+  // Domain extraction from M2
+  let domaine = null;
+  if (sourceId === 'm2') {
+    const domMatch = text.match(/domaine[^:\n]*:\s*([^\n]{3,60})/i)
+      || text.match(/spécialité[^:\n]*:\s*([^\n]{3,60})/i);
+    domaine = domMatch ? (domMatch[1] || '').replace(/\*\*/g, '').trim() : null;
+  }
+
+  return { competence, phase, domaine };
+}
+
+// Called by M3 "Utiliser [MX]" buttons
+function prefillM3From(sourceId) {
+  const { competence, phase, domaine } = extractForM3(sourceId);
+  const sourceLabel = { m0: 'M0', m1: 'M1', m2: 'M2' }[sourceId] || sourceId;
+  const sourceColor = { m0: '#0891b2', m1: '#0284c7', m2: '#7c3aed' }[sourceId] || '#002455';
+
+  // Fill competence field
+  const compField = document.getElementById('field_competence');
+  if (compField && competence) {
+    compField.value = competence;
+    compField.style.borderColor = sourceColor;
+    compField.title = `Pré-rempli depuis ${sourceLabel}`;
+  }
+
+  // Fill phase select if detected
+  if (phase) {
+    const phaseField = document.getElementById('field_phase');
+    if (phaseField) {
+      const opts = Array.from(phaseField.options).map(o => o.value);
+      const match = opts.find(o => o.toLowerCase().includes(phase.toLowerCase().slice(0, 6)));
+      if (match) { phaseField.value = match; phaseField.style.borderColor = sourceColor; }
+    }
+  }
+
+  // Fill domaine hint into competence if M2 and no competence found
+  if (domaine && compField && !compField.value) {
+    compField.value = domaine;
+    compField.style.borderColor = sourceColor;
+  }
+
+  showToast(`✅ Champs pré-remplis depuis ${sourceLabel}`, 'success');
+}
+
+// ─────────────────────────────────────────────
+// API KEY MANAGEMENT
+// ─────────────────────────────────────────────
+const STORAGE_KEY = 'evfc_anthropic_api_key';
+
+function getApiKey() {
+  return localStorage.getItem(STORAGE_KEY) || '';
+}
+
+function saveApiKey(key) {
+  if (key) localStorage.setItem(STORAGE_KEY, key.trim());
+  else localStorage.removeItem(STORAGE_KEY);
+  updateKeyStatus();
+}
+
+function updateKeyStatus() {
+  const key = getApiKey();
+  const dot = document.getElementById('key-status-dot');
+  const label = document.getElementById('key-status-label');
+  if (!dot || !label) return;
+  if (key) {
+    dot.className = 'key-status-dot ok';
+    label.textContent = 'Clé ···' + key.slice(-4);
+  } else {
+    dot.className = 'key-status-dot missing';
+    label.textContent = 'Clé API';
+  }
+}
+
+function showApiKeyModal(onSaveCallback) {
+  const existing = document.getElementById('apikey-modal');
+  if (existing) existing.remove();
+
+  const currentKey = getApiKey();
+  const modal = document.createElement('div');
+  modal.id = 'apikey-modal';
+  modal.className = 'apikey-modal-overlay';
+  modal.innerHTML = `
+    <div class="apikey-modal-box">
+      <div class="apikey-modal-header">
+        <span style="font-size:22px">🔑</span>
+        <h2>Clé API Anthropic</h2>
+      </div>
+      <div class="apikey-modal-body">
+        <div class="apikey-info">
+          <strong>Pourquoi cette clé ?</strong><br>
+          Chaque génération IA appelle l'API Anthropic directement depuis ton navigateur.
+          Les tokens sont facturés à <strong>ton compte Anthropic</strong>, pas à Édumédiapole.<br><br>
+          Obtiens ta clé sur <strong>console.anthropic.com → API Keys</strong>.<br>
+          Elle est stockée uniquement dans ton navigateur (localStorage), jamais envoyée ailleurs.
+        </div>
+        <div class="apikey-input-wrap">
+          <input
+            class="apikey-input"
+            id="apikey-input-field"
+            type="password"
+            placeholder="sk-ant-api03-..."
+            value="${currentKey}"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button class="apikey-toggle" onclick="toggleApiKeyVisibility()" id="apikey-toggle-btn" title="Afficher/masquer">👁</button>
+        </div>
+        <div class="apikey-actions">
+          <button class="btn-apikey-save" onclick="saveApiKeyFromModal()">✅ Enregistrer</button>
+          ${currentKey ? `<button class="btn-apikey-cancel" onclick="clearApiKey()">🗑 Effacer</button>` : ''}
+          <button class="btn-apikey-cancel" onclick="document.getElementById('apikey-modal').remove()">Annuler</button>
+        </div>
+        <div class="apikey-warning">
+          🔒 Stockée uniquement dans ton navigateur · Jamais transmise à un tiers · Effaçable à tout moment
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal._onSave = onSaveCallback || null;
+  document.body.appendChild(modal);
+  setTimeout(() => document.getElementById('apikey-input-field')?.focus(), 100);
+
+  // Enter to save
+  modal.querySelector('#apikey-input-field').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveApiKeyFromModal();
+    if (e.key === 'Escape') modal.remove();
+  });
+}
+
+function toggleApiKeyVisibility() {
+  const input = document.getElementById('apikey-input-field');
+  const btn = document.getElementById('apikey-toggle-btn');
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+  btn.textContent = input.type === 'password' ? '👁' : '🙈';
+}
+
+function saveApiKeyFromModal() {
+  const input = document.getElementById('apikey-input-field');
+  const key = input?.value?.trim() || '';
+  if (!key || !key.startsWith('sk-')) {
+    input.style.borderColor = 'var(--red)';
+    input.placeholder = 'La clé doit commencer par sk-ant-...';
+    showToast('⚠️ Clé invalide — doit commencer par sk-', 'error');
+    return;
+  }
+  saveApiKey(key);
+  const modal = document.getElementById('apikey-modal');
+  if (modal?._onSave) modal._onSave(key);
+  modal?.remove();
+  showToast('✅ Clé API enregistrée', 'success');
+}
+
+function clearApiKey() {
+  saveApiKey('');
+  document.getElementById('apikey-modal')?.remove();
+  showToast('🗑 Clé supprimée', '');
+}
+
+// ─────────────────────────────────────────────
+// GENERATE
+// ─────────────────────────────────────────────
+async function generate() {
+  const skill = currentSkill;
+  const btn = document.getElementById('btn-gen');
+
+  // Collect fields
+  const inputs = {};
+  let valid = true;
+  skill.fields.forEach(f => {
+    const el = document.getElementById(`field_${f.id}`);
+    if (el) {
+      inputs[f.id] = el.value.trim();
+      if (f.required && !inputs[f.id]) {
+        el.style.borderColor = 'var(--red)';
+        valid = false;
+      } else {
+        el.style.borderColor = '';
+      }
+    }
+  });
+
+  if (!valid) {
+    showToast('⚠️ Remplis les champs obligatoires', 'error');
+    return;
+  }
+
+  // Build user prompt
+  const userPrompt = skill.fields.map(f => {
+    const val = inputs[f.id];
+    if (!val) return null;
+    return `**${f.label}** : ${val}`;
+  }).filter(Boolean).join('\n');
+
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  // ── Vérifier la clé API ──
+  let apiKey = getApiKey();
+  if (!apiKey) {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    showApiKeyModal(() => generate()); // re-déclenche generate après saisie
+    return;
+  }
+
+  const resultZone = document.getElementById('result-zone');
+  resultZone.innerHTML = `
+    <div class="result-zone" style="padding:40px; text-align:center; color:var(--text-muted)">
+      <div style="font-size:32px; animation:spin 1s linear infinite; display:inline-block">⚙️</div>
+      <p style="margin-top:12px; font-size:14px;">Génération en cours…</p>
+    </div>
+  `;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: skill.systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      if (data.error.type === 'authentication_error' || response.status === 401) {
+        saveApiKey(''); // clear invalid key
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        showApiKeyModal(() => generate());
+        showToast('🔑 Clé API invalide — saisis-en une nouvelle', 'error');
+        return;
+      }
+      throw new Error(data.error.message);
+    }
+
+    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    currentResult = text;
+    resultCache[skill.id] = text;  // cache for downstream pre-fill
+
+    renderResult(text, skill);
+    showToast('✅ Livrable généré !', 'success');
+  } catch (err) {
+    resultZone.innerHTML = `
+      <div class="result-zone" style="padding:30px; text-align:center">
+        <p style="color:var(--red); font-size:14px">❌ Erreur : ${err.message}</p>
+      </div>
+    `;
+    showToast('❌ Erreur de génération', 'error');
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+// ─────────────────────────────────────────────
+// RENDER RESULT
+// ─────────────────────────────────────────────
+function renderResult(text, skill) {
+  const resultZone = document.getElementById('result-zone');
+
+  const nextSkillId = skill.chain[0];
+  const nextSkill = nextSkillId ? SKILLS.find(s => s.id === nextSkillId) : null;
+
+  const nextStepHTML = nextSkill ? `
+    <div class="next-step-block">
+      <div class="next-step-text">
+        Étape suivante recommandée : <strong>${nextSkill.module} — ${nextSkill.name}</strong>
+      </div>
+      <button class="btn-next-step" onclick="selectSkill('${nextSkillId}')">
+        Continuer → ${nextSkill.shortName}
+      </button>
+    </div>
+  ` : '';
+
+  const isM5 = skill.id === 'm5';
+
+  resultZone.innerHTML = `
+    <div class="result-zone" id="result-content-block">
+      <div class="result-toolbar">
+        <div class="result-label">
+          <span class="result-dot"></span>
+          Livrable — ${skill.module} · ${skill.name}
+        </div>
+        <div class="result-actions">
+          <button class="btn-action copy" onclick="copyResult()">📋 Copier</button>
+          <button class="btn-action pdf" onclick="exportPDF()">📄 PDF</button>
+          <button class="btn-action docx" onclick="exportDOCX()">📝 DOCX</button>
+          ${isM5 ? `
+          <button class="btn-action forms" onclick="showFormsModal('formateur')" title="Générer le script Apps Script pour la grille formateur">🟦 Forms Formateur</button>
+          <button class="btn-action forms" onclick="showFormsModal('autoeval')" title="Générer le script Apps Script pour la grille auto-évaluation">🟩 Forms Auto-éval</button>
+          ` : ''}
+        </div>
+      </div>
+      <div class="result-body" id="result-body">
+        ${marked.parse(text)}
+      </div>
+    </div>
+    ${nextStepHTML}
+  `;
+
+  // Scroll to result
+  resultZone.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─────────────────────────────────────────────
+// COPY
+// ─────────────────────────────────────────────
+function copyResult() {
+  navigator.clipboard.writeText(currentResult)
+    .then(() => showToast('📋 Copié dans le presse-papiers', 'success'))
+    .catch(() => showToast('❌ Impossible de copier', 'error'));
+}
+
+// ─────────────────────────────────────────────
+// EXPORT PDF
+// ─────────────────────────────────────────────
+async function exportPDF() {
+  if (!currentResult) return showToast('⚠️ Génère d\'abord un livrable', 'error');
+
+  showToast('⏳ Export PDF en cours…');
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const contentW = pageW - margin * 2;
+
+  // Header
+  doc.setFillColor(0, 36, 85);
+  doc.rect(0, 0, pageW, 18, 'F');
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('Édumédiapole · Formateur Augmenté EVFC', margin, 12);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${currentSkill.module} — ${currentSkill.name}`, pageW - margin, 12, { align: 'right' });
+
+  // Red accent line
+  doc.setFillColor(240, 50, 44);
+  doc.rect(0, 18, pageW, 1.5, 'F');
+
+  // Date
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 120);
+  doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })}`, margin, 26);
+
+  let y = 32;
+
+  // Process markdown lines
+  const lines = currentResult.split('\n');
+  doc.setTextColor(30, 30, 50);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (y > pageH - 20) {
+      doc.addPage();
+      doc.setFillColor(0, 36, 85);
+      doc.rect(0, 0, pageW, 10, 'F');
+      y = 16;
+    }
+
+    if (line.startsWith('# ')) {
+      doc.setFillColor(0, 36, 85);
+      doc.rect(margin - 2, y - 5, contentW + 4, 10, 'F');
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text(line.replace(/^# /, '').substring(0, 70), margin, y);
+      doc.setTextColor(30, 30, 50);
+      y += 10;
+    } else if (line.startsWith('## ')) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 36, 85);
+      doc.text(line.replace(/^## /, '').substring(0, 80), margin, y);
+      doc.setDrawColor(0, 36, 85);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y + 1.5, margin + contentW, y + 1.5);
+      doc.setTextColor(30, 30, 50);
+      y += 8;
+    } else if (line.startsWith('### ')) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(240, 50, 44);
+      doc.text(line.replace(/^### /, '').substring(0, 90), margin, y);
+      doc.setTextColor(30, 30, 50);
+      y += 7;
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(40, 40, 60);
+      const clean = line.replace(/^[*-] /, '').replace(/\*\*(.*?)\*\*/g, '$1');
+      const wrapped = doc.splitTextToSize(`• ${clean}`, contentW - 8);
+      doc.text(wrapped, margin + 4, y);
+      y += wrapped.length * 5.5;
+    } else if (line.startsWith('> ')) {
+      doc.setFillColor(250, 240, 240);
+      doc.rect(margin, y - 4, contentW, 8, 'F');
+      doc.setDrawColor(240, 50, 44);
+      doc.setLineWidth(0.8);
+      doc.line(margin, y - 4, margin, y + 4);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(100, 40, 40);
+      const clean = line.replace(/^> /, '');
+      doc.text(clean.substring(0, 100), margin + 4, y);
+      doc.setTextColor(30, 30, 50);
+      y += 10;
+    } else if (line.trim() === '' || line.startsWith('---')) {
+      y += 3;
+    } else if (line.trim() && !line.startsWith('|') && !line.startsWith('```')) {
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(40, 40, 60);
+      const clean = line.replace(/\*\*(.*?)\*\*/g, '$1').replace(/`(.*?)`/g, '$1');
+      const wrapped = doc.splitTextToSize(clean, contentW);
+      doc.text(wrapped, margin, y);
+      y += wrapped.length * 5.5;
+    }
+  }
+
+  // Footer on all pages
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFillColor(245, 247, 252);
+    doc.rect(0, pageH - 10, pageW, 10, 'F');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 100, 120);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Édumédiapole · bruno.fernon@edumediapole.net', margin, pageH - 4);
+    doc.text(`${p} / ${totalPages}`, pageW / 2, pageH - 4, { align: 'center' });
+    doc.text(`${currentSkill.module} — ${currentSkill.name}`, pageW - margin, pageH - 4, { align: 'right' });
+  }
+
+  const filename = `EVFC_${currentSkill.module}_${currentSkill.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+  doc.save(filename);
+  showToast('✅ PDF exporté !', 'success');
+}
+
+// ─────────────────────────────────────────────
+// EXPORT DOCX
+// ─────────────────────────────────────────────
+async function exportDOCX() {
+  if (!currentResult) return showToast('⚠️ Génère d\'abord un livrable', 'error');
+
+  showToast('⏳ Export DOCX en cours…');
+
+  try {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, BorderStyle, TableRow, TableCell, Table, WidthType, AlignmentType, ShadingType } = docx;
+
+    const children = [];
+
+    // Title page header
+    children.push(new Paragraph({
+      children: [
+        new TextRun({ text: 'Édumédiapole · Formateur Augmenté EVFC', bold: true, size: 28, color: '002455' })
+      ],
+      spacing: { after: 100 }
+    }));
+
+    children.push(new Paragraph({
+      children: [
+        new TextRun({ text: `${currentSkill.module} — ${currentSkill.name}`, size: 22, color: 'F0322C', bold: true })
+      ],
+      spacing: { after: 100 }
+    }));
+
+    children.push(new Paragraph({
+      children: [
+        new TextRun({ text: `Généré le ${new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })}`, size: 18, color: '666688', italics: true })
+      ],
+      spacing: { after: 400 }
+    }));
+
+    // Parse markdown
+    const lines = currentResult.split('\n');
+
+    for (const line of lines) {
+      if (line.startsWith('# ')) {
+        children.push(new Paragraph({
+          text: line.replace(/^# /, ''),
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 300, after: 150 }
+        }));
+      } else if (line.startsWith('## ')) {
+        children.push(new Paragraph({
+          text: line.replace(/^## /, ''),
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        }));
+      } else if (line.startsWith('### ')) {
+        children.push(new Paragraph({
+          text: line.replace(/^### /, ''),
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 150, after: 80 }
+        }));
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        const text = line.replace(/^[*-] /, '').replace(/\*\*(.*?)\*\*/g, '$1');
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `• ${text}`, size: 22 })],
+          spacing: { before: 60, after: 60 },
+          indent: { left: 360 }
+        }));
+      } else if (line.startsWith('> ')) {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: line.replace(/^> /, ''), italics: true, color: '664444', size: 20 })],
+          spacing: { before: 100, after: 100 },
+          indent: { left: 500 },
+          border: { left: { style: BorderStyle.THICK, size: 6, color: 'F0322C', space: 5 } }
+        }));
+      } else if (line.trim() === '' || line.startsWith('---')) {
+        children.push(new Paragraph({ text: '', spacing: { after: 100 } }));
+      } else if (line.trim() && !line.startsWith('|') && !line.startsWith('```')) {
+        const clean = line.replace(/\*\*(.*?)\*\*/g, '$1').replace(/`(.*?)`/g, '$1');
+        children.push(new Paragraph({
+          children: [new TextRun({ text: clean, size: 22 })],
+          spacing: { before: 60, after: 60 }
+        }));
+      }
+    }
+
+    const doc2 = new Document({
+      creator: 'Édumédiapole · Formateur Augmenté EVFC',
+      title: `${currentSkill.module} — ${currentSkill.name}`,
+      description: 'Généré par le Pack FPA Édumédiapole',
+      sections: [{ properties: {}, children }]
+    });
+
+    const blob = await Packer.toBlob(doc2);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `EVFC_${currentSkill.module}_${currentSkill.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ DOCX exporté !', 'success');
+  } catch (err) {
+    showToast(`❌ Erreur DOCX : ${err.message}`, 'error');
+    console.error(err);
+  }
+}
+
+// ─────────────────────────────────────────────
+// M5 — PARSE GRILLE FROM MARKDOWN
+// ─────────────────────────────────────────────
+function parseGrilleFromMarkdown(mdText) {
+  // Extract title (first # heading)
+  const titleMatch = mdText.match(/^#\s+(.+)/m);
+  const title = titleMatch ? titleMatch[1].trim() : 'Grille d\'évaluation';
+
+  // Extract table rows — format: | Critère | Indicateur | Niv1 | Niv2 | ... |
+  const rows = [];
+  const tableLines = mdText.split('\n').filter(l => l.trim().startsWith('|') && !l.includes('---'));
+  
+  if (tableLines.length >= 2) {
+    // First line = headers
+    const headers = tableLines[0].split('|').map(h => h.trim()).filter(Boolean);
+    // Remaining = data rows
+    for (let i = 1; i < tableLines.length; i++) {
+      const cells = tableLines[i].split('|').map(c => c.trim()).filter(Boolean);
+      if (cells.length >= 2 && cells[0]) {
+        const obj = {};
+        headers.forEach((h, idx) => { obj[h] = cells[idx] || ''; });
+        rows.push(obj);
+      }
+    }
+  }
+
+  // Fallback: extract criteria from bullet lists if no table found
+  if (rows.length === 0) {
+    const bullets = mdText.match(/^[-*]\s+\*\*(.+?)\*\*[:\s]*(.*)/gm) || [];
+    bullets.forEach(b => {
+      const m = b.match(/^[-*]\s+\*\*(.+?)\*\*[:\s]*(.*)/);
+      if (m) rows.push({ critere: m[1].trim(), description: m[2].trim() });
+    });
+  }
+
+  // Extract level columns (any header that's not "critere/critère/indicateur/description")
+  const levelKeywords = /^(niv|level|acquis|non.acquis|maîtris|débutant|inter|expert|expert|insuffisant|en.cours|confirmé|0|1|2|3)/i;
+  const headers0 = rows.length > 0 ? Object.keys(rows[0]) : [];
+  const levels = headers0.filter(h => levelKeywords.test(h));
+
+  return { title, rows, levels, headers: headers0 };
+}
+
+// ─────────────────────────────────────────────
+// M5 — GENERATE APPS SCRIPT
+// ─────────────────────────────────────────────
+function generateAppsScriptForms(mdText, type) {
+  const { title, rows, levels, headers } = parseGrilleFromMarkdown(mdText);
+  const formTitle = type === 'formateur'
+    ? `Grille d'observation formateur — ${title}`
+    : `Grille d'auto-évaluation — ${title}`;
+
+  const date = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  // Build criteria items for the script
+  const criteriaLines = rows.map((row, i) => {
+    const critere = row[headers[0]] || row['critere'] || row['Critère'] || row['Critères'] || `Critère ${i+1}`;
+    const indicateur = row[headers[1]] || row['indicateur'] || row['Indicateur'] || row['Description'] || '';
+
+    // Determine choices
+    let choices;
+    if (levels.length >= 2) {
+      choices = levels.map(l => row[l] || l).filter(Boolean);
+    } else {
+      // Default scales per type
+      choices = type === 'formateur'
+        ? ['Non acquis', 'En cours d\'acquisition', 'Acquis', 'Maîtrisé']
+        : ['Jamais', 'Parfois', 'Souvent', 'Toujours'];
+    }
+
+    const choicesStr = choices.map(c => `'${c.replace(/'/g, "\\'")}'`).join(', ');
+    const desc = indicateur ? ` — ${indicateur.slice(0, 120)}` : '';
+
+    return `
+  // Critère ${i+1}
+  var item${i} = form.addMultipleChoiceItem();
+  item${i}.setTitle('${critere.replace(/'/g, "\\'")}${desc.replace(/'/g, "\\'")}');
+  item${i}.setChoiceValues([${choicesStr}]);
+  item${i}.setRequired(true);`;
+  }).join('\n');
+
+  // Header section for formateur vs auto-eval
+  const headerSection = type === 'formateur'
+    ? `
+  // En-tête formateur
+  form.addTextItem().setTitle('Nom de l\\'apprenant').setRequired(true);
+  form.addTextItem().setTitle('Prénom').setRequired(true);
+  form.addDateItem().setTitle('Date d\\'observation').setRequired(true);
+  form.addTextItem().setTitle('Contexte de l\\'observation (situation, lieu, durée)').setRequired(false);
+  form.addSectionHeaderItem().setTitle('─── Critères d\\'évaluation ───');`
+    : `
+  // En-tête auto-évaluation
+  form.addTextItem().setTitle('Ton prénom et nom').setRequired(true);
+  form.addDateItem().setTitle('Date').setRequired(true);
+  form.addSectionHeaderItem().setTitle('─── Auto-évaluation ───');
+  form.addParagraphTextItem().setTitle('Ce que je pense avoir réussi').setRequired(false);
+  form.addParagraphTextItem().setTitle('Ce que je dois encore travailler').setRequired(false);
+  form.addSectionHeaderItem().setTitle('─── Critères ───');`;
+
+  const footerSection = type === 'formateur'
+    ? `
+  // Commentaires formateur
+  form.addSectionHeaderItem().setTitle('─── Synthèse formateur ───');
+  form.addParagraphTextItem().setTitle('Points forts observés').setRequired(false);
+  form.addParagraphTextItem().setTitle('Axes de progression').setRequired(false);
+  form.addMultipleChoiceItem()
+    .setTitle('Validation globale de la compétence')
+    .setChoiceValues(['✅ Compétence validée', '🔄 À consolider', '❌ Non validée — remédiation nécessaire'])
+    .setRequired(true);`
+    : `
+  // Synthèse auto-éval
+  form.addSectionHeaderItem().setTitle('─── Bilan personnel ───');
+  form.addScaleItem()
+    .setTitle('Niveau de confiance global (1 = pas du tout confiant · 5 = très confiant)')
+    .setBounds(1, 5)
+    .setRequired(true);
+  form.addParagraphTextItem().setTitle('Ce que je veux approfondir').setRequired(false);`;
+
+  return `/**
+ * ╔══════════════════════════════════════════════════════════╗
+ * ║  ${formTitle.slice(0, 56).padEnd(56)} ║
+ * ║  Généré par Formateur Augmenté EVFC — Édumédiapole      ║
+ * ║  Date : ${date.padEnd(48)} ║
+ * ║  Type : ${(type === 'formateur' ? 'Grille observation formateur' : 'Grille auto-évaluation apprenant').padEnd(48)} ║
+ * ╚══════════════════════════════════════════════════════════╝
+ *
+ * INSTRUCTIONS D'UTILISATION :
+ * 1. Ouvre Google Drive → Nouveau → Google Apps Script
+ * 2. Colle l'intégralité de ce code (remplace le contenu existant)
+ * 3. Clique sur ▶ Exécuter → buildForm
+ * 4. Autorise les permissions demandées
+ * 5. Le formulaire apparaît dans ton Google Drive
+ */
+
+function buildForm() {
+  var formTitle = '${formTitle.replace(/'/g, "\\'")}';
+  var form = FormApp.create(formTitle);
+
+  // ── Configuration générale ──
+  form.setDescription('Édumédiapole · Pack FPA · Généré le ${date}');
+  form.setCollectEmail(false);
+  form.setAllowResponseEdits(true);
+  form.setLimitOneResponsePerUser(false);
+  form.setShowLinkToRespondAgain(true);
+  form.setProgressBar(true);
+  form.setShuffleQuestions(false);
+${headerSection}
+${criteriaLines}
+${footerSection}
+
+  // ── Confirmation ──
+  form.setConfirmationMessage('✅ Réponse enregistrée. Merci pour ton retour.');
+
+  // ── Log de l'URL ──
+  var url = form.getPublishedUrl();
+  var editUrl = form.getEditUrl();
+  Logger.log('✅ Formulaire créé avec succès !');
+  Logger.log('🔗 URL de réponse : ' + url);
+  Logger.log('✏️  URL d\\'édition  : ' + editUrl);
+
+  // ── Optionnel : affichage dans une popup ──
+  var ui = SpreadsheetApp.getUi ? SpreadsheetApp.getUi() : null;
+  if (ui) {
+    ui.alert('Formulaire créé !\\n\\nURL : ' + url);
+  }
+
+  return form;
+}`;
+}
+
+// ─────────────────────────────────────────────
+// M5 — MODAL APPS SCRIPT
+// ─────────────────────────────────────────────
+function showFormsModal(type) {
+  if (!currentResult) return showToast('⚠️ Génère d\'abord une grille en M5', 'error');
+
+  const scriptFormateur = generateAppsScriptForms(currentResult, 'formateur');
+  const scriptAutoeval  = generateAppsScriptForms(currentResult, 'autoeval');
+
+  const activeTab = type;
+
+  // Remove existing modal
+  const existing = document.getElementById('forms-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'forms-modal';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🟦 Google Forms — Apps Script</span>
+          <span class="modal-tag">M5 · Grilles</span>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('forms-modal').remove()">✕</button>
+      </div>
+
+      <div class="modal-steps">
+        <div class="modal-step">
+          <div class="modal-step-num">1</div>
+          <div class="modal-step-text"><strong>Copier</strong> le script ci-dessous</div>
+        </div>
+        <div class="modal-step">
+          <div class="modal-step-num">2</div>
+          <div class="modal-step-text"><strong>Google Drive</strong> → Nouveau → <strong>Google Apps Script</strong> → coller</div>
+        </div>
+        <div class="modal-step">
+          <div class="modal-step-num">3</div>
+          <div class="modal-step-text"><strong>▶ Exécuter</strong> → <code style="background:var(--badge-bg);padding:1px 5px;border-radius:3px;font-size:11px">buildForm</code> → autoriser</div>
+        </div>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="modal-tab ${activeTab === 'formateur' ? 'active' : ''}" id="tab-formateur"
+          onclick="switchFormsTab('formateur')">🟦 Grille Formateur</button>
+        <button class="modal-tab ${activeTab === 'autoeval' ? 'active' : ''}" id="tab-autoeval"
+          onclick="switchFormsTab('autoeval')">🟩 Grille Auto-éval</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-code-wrap">
+          <button class="modal-copy-btn" onclick="copyFormsScript()">📋 Copier le script</button>
+          <pre class="modal-code" id="forms-script-display">${escapeHtml(activeTab === 'formateur' ? scriptFormateur : scriptAutoeval)}</pre>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Store scripts on modal element for tab switching
+  modal._scripts = { formateur: scriptFormateur, autoeval: scriptAutoeval };
+  document.body.appendChild(modal);
+
+  // Close on overlay click
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+function switchFormsTab(type) {
+  const modal = document.getElementById('forms-modal');
+  if (!modal) return;
+  const script = modal._scripts[type];
+  document.getElementById('forms-script-display').textContent = script;
+  document.getElementById('tab-formateur').classList.toggle('active', type === 'formateur');
+  document.getElementById('tab-autoeval').classList.toggle('active', type === 'autoeval');
+}
+
+function copyFormsScript() {
+  const code = document.getElementById('forms-script-display').textContent;
+  navigator.clipboard.writeText(code)
+    .then(() => showToast('📋 Script copié !', 'success'))
+    .catch(() => showToast('❌ Impossible de copier', 'error'));
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ─────────────────────────────────────────────
+// KEYBOARD SHORTCUTS
+// ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // Escape → accueil
+  if (e.key === 'Escape' && currentSkill) { goHome(); return; }
+
+  // Alt+← → retour
+  if (e.altKey && e.key === 'ArrowLeft') { goBack(); return; }
+
+  // Alt+← / → dans la chaîne
+  if (!e.altKey) return;
+  if (!currentSkill || activeChain.length <= 1) return;
+  const idx = activeChain.indexOf(currentSkill.id);
+  if (e.key === 'ArrowRight' && idx < activeChain.length - 1) {
+    selectSkill(activeChain[idx + 1]);
+  }
+  if (e.key === 'ArrowLeft' && idx > 0) {
+    selectSkill(activeChain[idx - 1]);
+  }
+});
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+renderSidebar();
+renderWelcome();
+updateKeyStatus();
+// Prompt clé si absente au démarrage (après 1s pour laisser l'UI se charger)
+if (!getApiKey()) {
+  setTimeout(() => showApiKeyModal(), 800);
+}
+</script>
+</body>
+</html>
