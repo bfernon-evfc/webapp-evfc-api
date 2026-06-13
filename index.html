@@ -2816,7 +2816,7 @@ async function exportPDF() {
     doc.setFontSize(7.5);
     doc.setTextColor(100, 100, 120);
     doc.setFont('helvetica', 'normal');
-    doc.text(cleanForPDF('Edumédiapole · bfernon@edumediapole.net'), margin, pageH - 4);
+    doc.text(cleanForPDF('B.FERNON © Edumédiapole'), margin, pageH - 4);
     doc.text(`${p} / ${totalPages}`, pageW / 2, pageH - 4, { align: 'center' });
     doc.text(cleanForPDF(`${currentSkill.module} — ${currentSkill.name}`), pageW - margin, pageH - 4, { align: 'right' });
   }
@@ -3017,7 +3017,7 @@ async function exportDOCX() {
     const docFooter = new Footer({
       children: [new Paragraph({
         children: [
-          new TextRun({ text: 'bfernon@edumediapole.net', size: 16, color: GRAY, font: 'Calibri' }),
+          new TextRun({ text: 'B.FERNON © Edumédiapole', size: 16, color: GRAY, font: 'Calibri' }),
           new TextRun({ text: '\t', size: 16 }),
           new TextRun({ children: [PageNumber.CURRENT], size: 16, color: GRAY, font: 'Calibri' }),
           new TextRun({ text: ' / ', size: 16, color: GRAY, font: 'Calibri' }),
