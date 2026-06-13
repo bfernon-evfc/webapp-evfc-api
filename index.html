@@ -84,18 +84,21 @@
     text-align: center;
     padding: 14px 24px;
     font-size: 12px;
-    color: var(--text-muted);
-    border-top: 1px solid var(--border);
-    background: var(--bg-sidebar);
+    color: rgba(255,255,255,0.7);
+    background: var(--bg-header);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     flex-wrap: wrap;
   }
-  .app-footer strong { color: var(--navy); }
-  [data-theme="dark"] .app-footer strong { color: #7eb3f7; }
-  .app-footer-sep { opacity: 0.4; }
+  .app-footer strong {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+  }
+  .app-footer-sep { opacity: 0.35; }
 
   header {
     background: var(--bg-header);
@@ -1221,6 +1224,17 @@
     margin-top: 12px; font-size: 11px; color: var(--text-muted);
     text-align: center; line-height: 1.5;
   }
+  .model-select {
+    appearance: none;
+    padding: 6px 28px 6px 10px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; border: 1px solid rgba(255,255,255,0.2);
+    color: white; background: rgba(255,255,255,0.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.7)'/%3E%3C/svg%3E") no-repeat right 9px center;
+    outline: none; font-family: inherit;
+  }
+  .model-select:hover { background-color: rgba(255,255,255,0.16); }
+  .model-select option { background: var(--navy, #002455); color: white; }
+
   .key-status {
     display: flex; align-items: center; gap: 6px;
     padding: 6px 12px; border-radius: 8px;
@@ -1456,6 +1470,11 @@
   </div>
   <div class="header-actions">
     <span class="version-badge">v2.0</span>
+    <select class="model-select" id="model-select" onchange="setModel(this.value)" title="Modèle Claude">
+      <option value="claude-haiku-4-5">Haiku 4.5 — rapide</option>
+      <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — équilibré</option>
+      <option value="claude-opus-4-8">Opus 4.8 — puissant</option>
+    </select>
     <button class="key-status" id="key-status-btn" onclick="showApiKeyModal()" title="Configurer ta clé API Anthropic">
       <span class="key-status-dot missing" id="key-status-dot"></span>
       <span id="key-status-label">Clé API</span>
@@ -2216,6 +2235,22 @@ function prefillM3From(sourceId) {
 }
 
 // ─────────────────────────────────────────────
+// MODEL SELECTION
+// ─────────────────────────────────────────────
+const MODEL_STORAGE_KEY = 'evfc_model';
+let selectedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'claude-sonnet-4-6';
+
+function setModel(modelId) {
+  selectedModel = modelId;
+  localStorage.setItem(MODEL_STORAGE_KEY, modelId);
+}
+
+function initModelSelect() {
+  const sel = document.getElementById('model-select');
+  if (sel) sel.value = selectedModel;
+}
+
+// ─────────────────────────────────────────────
 // API KEY MANAGEMENT
 // ─────────────────────────────────────────────
 const STORAGE_KEY = 'evfc_anthropic_api_key';
@@ -2396,7 +2431,7 @@ async function generate() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: selectedModel,
         max_tokens: 6000,
         system: skill.systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
@@ -3382,6 +3417,7 @@ try {
 renderSidebar();
 renderWelcome();
 updateKeyStatus();
+initModelSelect();
 // Restore sidebar collapsed state
 if (localStorage.getItem('sidebarCollapsed') === '1') {
   document.getElementById('app-layout').classList.add('sidebar-collapsed');
