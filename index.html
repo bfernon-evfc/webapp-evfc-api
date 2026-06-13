@@ -243,6 +243,35 @@
     margin-top: 2px;
   }
 
+  .beta-badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1px 5px;
+    border-radius: 20px;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    flex-shrink: 0;
+  }
+  [data-theme="dark"] .beta-badge { background: #451a03; color: #fcd34d; border-color: #92400e; }
+
+  .welcome-card-beta {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 1px 5px;
+    border-radius: 20px;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  [data-theme="dark"] .welcome-card-beta { background: #451a03; color: #fcd34d; border-color: #92400e; }
+
   .main-content {
     display: flex;
     flex-direction: column;
@@ -1598,6 +1627,7 @@ Termine par un plan d'action concret pour la suite de la séquence. Format Markd
     shortName: 'Workflow n8n',
     desc: 'Génère des workflows d\'automatisation pédagogique pour n8n',
     color: '#374151',
+    beta: true,
     chain: [],
     fields: [
       { id: 'objectif', label: 'Objectif d\'automatisation', type: 'textarea', placeholder: 'Ex: Envoyer automatiquement les livrables PDF aux apprenants après chaque séquence', required: true },
@@ -1670,6 +1700,7 @@ function renderSidebar() {
           <div class="skill-header">
             <span class="skill-badge" style="background:${skill.color}">${skill.module}</span>
             <span class="skill-name">${skill.shortName}</span>
+            ${skill.beta ? '<span class="beta-badge">bêta</span>' : ''}
           </div>
           <div class="skill-desc">${skill.desc}</div>
         </div>
@@ -1699,6 +1730,7 @@ function renderWelcome() {
         ${SKILLS.map(s => `
           <div class="welcome-card" onclick="selectSkill('${s.id}')">
             <span class="welcome-card-badge" style="background:${s.color}">${s.module}</span>
+            ${s.beta ? '<span class="welcome-card-beta">bêta</span>' : ''}
             <div class="welcome-card-title">${s.shortName}</div>
             <div class="welcome-card-desc">${s.desc}</div>
           </div>
