@@ -11,8 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- html2canvas -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<!-- docx.js -->
-<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+<!-- docx.js chargé dynamiquement à la demande dans exportDOCX() -->
 
 <style>
   :root {
@@ -572,7 +571,115 @@
     padding: 14px;
     overflow-x: auto;
     margin: 10px 0;
+    position: relative;
   }
+
+  .copy-pre-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 3px 9px;
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 2;
+  }
+  .result-body pre:hover .copy-pre-btn { opacity: 1; }
+  .copy-pre-btn.copied { background: #059669; }
+
+  /* ── Lettres EVFC colorées ─────────────────────────────── */
+  .evfc-e { color: #0284c7; font-weight: 700; }
+  .evfc-v { color: #16a34a; font-weight: 700; }
+  .evfc-f { color: #ea580c; font-weight: 700; }
+  .evfc-c { color: #7c3aed; font-weight: 700; }
+  /* Sur fond sombre (dark mode) */
+  [data-theme="dark"] .evfc-e { color: #38bdf8; }
+  [data-theme="dark"] .evfc-v { color: #4ade80; }
+  [data-theme="dark"] .evfc-f { color: #fb923c; }
+  [data-theme="dark"] .evfc-c { color: #c084fc; }
+  /* Sur fond navy/coloré (ex : header, badges) */
+  .on-dark .evfc-e { color: #7dd3fc; }
+  .on-dark .evfc-v { color: #86efac; }
+  .on-dark .evfc-f { color: #fdba74; }
+  .on-dark .evfc-c { color: #d8b4fe; }
+
+  /* ── Badges Pack EVFC dans le label livrable ───────────── */
+  .pack-skill-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+  }
+  .pack-skill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid currentColor;
+    opacity: 0.85;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  /* ── "Claude" gras orange dans M2 ──────────────────────── */
+  .claude-highlight { color: #ea580c; font-weight: 700; }
+
+  /* Badge "Prompt Claude" affiché sur les blocs <pre> du module M2 */
+  .prompt-claude-badge {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    background: #7c3aed;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .result-body pre:hover .prompt-claude-badge { opacity: 1; }
+
+  /* Bandeau contextuel M2 */
+  .m2-context-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #E8F0FA;
+    border-left: 4px solid #002455;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: #002455;
+    line-height: 1.55;
+  }
+  .m2-context-banner .m2-banner-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .m2-context-banner strong { display: block; margin-bottom: 3px; font-size: 13.5px; }
+
+  /* Note de bas de livrable M2 */
+  .m2-footer-note {
+    margin-top: 22px;
+    padding: 12px 16px;
+    background: #f3f0ff;
+    border: 1px solid #c4b5fd;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: #4c1d95;
+    line-height: 1.6;
+  }
+  .m2-footer-note strong { color: #6d28d9; }
 
   .result-body pre code {
     background: none;
@@ -1230,7 +1337,7 @@
   <div class="header-brand">
     <img class="header-logo" src="images/Bannière_Edumédiapole_v3_medium.png" alt="Édumédiapole">
     <div>
-      <div class="header-title">Formateur Augmenté EVFC</div>
+      <div class="header-title">Formateur Augmenté <span class="evfc-e on-dark">E</span><span class="evfc-v on-dark">V</span><span class="evfc-f on-dark">F</span><span class="evfc-c on-dark">C</span></div>
       <div class="header-sub">Édumédiapole · Pack FPA</div>
     </div>
   </div>
@@ -1353,7 +1460,7 @@ Présente sous forme structurée en Markdown avec tableaux et listes.`
     module: 'M2',
     name: 'Prompts Pédagogiques FPA',
     shortName: 'IA + Prompts',
-    desc: '7 familles de prompts FPA + bibliothèque personnelle',
+    desc: 'Bibliothèque de prompts prêts à l\'emploi — à utiliser dans Claude + plugin Pack EVFC-FPA',
     color: '#7c3aed',
     chain: ['m1', 'm4'],
     fields: [
@@ -1532,7 +1639,7 @@ function renderWelcome() {
         <span style="font-size:28px">🎓</span>
         <span class="version-badge" style="background:var(--navy)">Pack FPA</span>
       </div>
-      <h1 class="welcome-title">Formateur Augmenté EVFC</h1>
+      <h1 class="welcome-title">Formateur Augmenté <span class="evfc-e">E</span><span class="evfc-v">V</span><span class="evfc-f">F</span><span class="evfc-c">C</span></h1>
       <p class="welcome-sub">
         Accède à l'intégralité du Pack Formation FPA depuis une seule interface.<br>
         Sélectionne un skill dans la barre latérale, ou commence par le point d'entrée recommandé ci-dessous.
@@ -1849,8 +1956,8 @@ function renderSkillPanel() {
         <span class="panel-module-tag" style="background:${skill.color}">${skill.module}</span>
         <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Pack FPA · Édumédiapole</span>
       </div>
-      <h1 class="panel-title">${skill.name}</h1>
-      <p class="panel-desc">${skill.desc}</p>
+      <h1 class="panel-title">${styleEVFC(skill.name)}</h1>
+      <p class="panel-desc">${styleEVFC(skill.desc)}</p>
     </div>
 
     ${chainHTML}
@@ -2208,13 +2315,55 @@ function renderResult(text, skill) {
   ` : '';
 
   const isM5 = skill.id === 'm5';
+  const isM2 = skill.id === 'm2';
+
+  // Mapping module → skill(s) technique(s) du Pack EVFC-FPA
+  const EVFC_PACK_MAP = {
+    'intro': [{ name: 'INTRO-simulateur-edc-evfc',               color: '#6366f1' },
+              { name: 'orchestrateur-architecte-formateur-augmente', color: '#002455' }],
+    'm0':   [{ name: 'M0-progression-pedagogique-evfc',          color: '#0891b2' }],
+    'm1':   [{ name: 'M1-evfc-sequence-designer',                color: '#0284c7' }],
+    'm2':   [{ name: 'M2-ai-training-designer',                  color: '#7c3aed' }],
+    'm3':   [{ name: 'M3-qcm-evfc-validator',                    color: '#059669' }],
+    'm4':   [{ name: 'M4-evfc-faire-scenario-generator',         color: '#d97706' }],
+    'm5':   [{ name: 'M5-grilles-criteriees',                    color: '#dc2626' }],
+    'm6':   [{ name: 'M6-era-loop-coach',                        color: '#db2777' }],
+    'm7':   [{ name: 'M7-n8n-automatisation',                    color: '#374151' }],
+  };
+  const packSkills = EVFC_PACK_MAP[skill.id] || [];
+  const packBadgesHTML = packSkills.length ? `
+    <div class="pack-skill-badges">
+      ${packSkills.map(s => `<span class="pack-skill-badge" style="color:${s.color};border-color:${s.color}">🧩 ${s.name}</span>`).join('')}
+    </div>` : '';
+
+  // Bandeau contextuel M2
+  const m2Banner = isM2 ? `
+    <div class="m2-context-banner">
+      <span class="m2-banner-icon">ℹ️</span>
+      <div>
+        <strong>Ces prompts sont conçus pour <span class="claude-highlight">Claude</span> + plugin Pack EVFC-FPA</strong>
+        Certains ne sont pas utilisables directement dans cette application. Copie-colle chaque prompt dans <span class="claude-highlight">Claude</span> Desktop ou <span class="claude-highlight">claude.ai</span> avec le plugin <strong>Pack EVFC-FPA</strong> activé pour obtenir les meilleurs résultats.
+      </div>
+    </div>` : '';
+
+  // Note de bas de livrable M2
+  const m2FooterNote = isM2 ? `
+    <div class="m2-footer-note">
+      💬 <strong>Mode d'emploi :</strong> copiez chaque prompt et collez-le dans une conversation <span class="claude-highlight">Claude</span> (claude.ai ou <span class="claude-highlight">Claude</span> Desktop) avec le plugin <strong>Pack EVFC-FPA</strong> activé. Les prompts marqués <em>"Prompt Claude"</em> sont prêts à l'emploi sans modification.
+    </div>` : '';
+
+  // Label livrable adapté
+  const resultLabel = isM2
+    ? `Bibliothèque de prompts M2 · ${styleEVFC(skill.name)}`
+    : `Livrable — ${skill.module} · ${styleEVFC(skill.name)}`;
 
   resultZone.innerHTML = `
     <div class="result-zone" id="result-content-block">
       <div class="result-toolbar">
         <div class="result-label">
           <span class="result-dot"></span>
-          Livrable — ${skill.module} · ${skill.name}
+          ${resultLabel}
+          ${packBadgesHTML}
         </div>
         <div class="result-actions">
           <button class="btn-action copy" onclick="copyResult()">📋 Copier</button>
@@ -2226,12 +2375,41 @@ function renderResult(text, skill) {
           ` : ''}
         </div>
       </div>
+      ${m2Banner}
       <div class="result-body" id="result-body">
         ${marked.parse(text)}
       </div>
+      ${m2FooterNote}
     </div>
     ${nextStepHTML}
   `;
+
+  // M2 : colore "Claude"/"CLAUDE" en gras orange dans tout le body
+  if (isM2) highlightClaudeInM2(document.getElementById('result-body'));
+
+  // Ajoute un bouton "Copier" sur chaque bloc <pre> du livrable
+  // + badge "Prompt Claude" sur les blocs M2
+  document.querySelectorAll('#result-body pre').forEach(pre => {
+    if (isM2) {
+      const badge = document.createElement('span');
+      badge.className = 'prompt-claude-badge';
+      badge.textContent = '✦ Prompt Claude';
+      pre.appendChild(badge);
+    }
+    const btn = document.createElement('button');
+    btn.className = 'copy-pre-btn';
+    btn.textContent = '📋 Copier';
+    btn.title = 'Copier ce prompt';
+    btn.addEventListener('click', () => {
+      const code = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = '✅ Copié !';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '📋 Copier'; btn.classList.remove('copied'); }, 2000);
+      });
+    });
+    pre.appendChild(btn);
+  });
 
   // Scroll to result
   resultZone.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2247,8 +2425,87 @@ function copyResult() {
 }
 
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// EVFC COLORÉ + CLAUDE HIGHLIGHT
+// ─────────────────────────────────────────────
+
+// Remplace "EVFC" dans une chaîne HTML par les lettres colorées
+// onDark = true si le texte est sur fond sombre (header, badge)
+function styleEVFC(str, onDark = false) {
+  const cls = onDark ? ' on-dark' : '';
+  return str.replace(/EVFC/g,
+    `<span class="evfc-e${cls}">E</span><span class="evfc-v${cls}">V</span><span class="evfc-f${cls}">F</span><span class="evfc-c${cls}">C</span>`
+  );
+}
+
+// Post-traitement du result-body M2 : colore "Claude" / "CLAUDE" en gras orange
+// Parcourt les nœuds texte pour ne pas casser les balises HTML
+function highlightClaudeInM2(rootEl) {
+  const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, null, false);
+  const nodes = [];
+  let node;
+  while ((node = walker.nextNode())) nodes.push(node);
+  nodes.forEach(n => {
+    if (!n.nodeValue.match(/Claude|CLAUDE/)) return;
+    const span = document.createElement('span');
+    span.innerHTML = n.nodeValue.replace(/(Claude|CLAUDE)/g, '<span class="claude-highlight">$1</span>');
+    n.parentNode.replaceChild(span, n);
+  });
+}
+
+// ─────────────────────────────────────────────
 // EXPORT PDF
 // ─────────────────────────────────────────────
+
+// Nettoie les caractères non supportés par jsPDF (Helvetica = Latin-1 uniquement)
+// Remplace les émojis courants par des équivalents lisibles avant de supprimer le reste
+function cleanForPDF(str) {
+  if (!str) return '';
+  return str
+    // --- Étoiles (niveaux, notes) ---
+    .replace(/⭐⭐⭐⭐⭐|🌟🌟🌟🌟🌟/g, '*****')
+    .replace(/⭐⭐⭐⭐|🌟🌟🌟🌟/g, '****')
+    .replace(/⭐⭐⭐|🌟🌟🌟/g, '***')
+    .replace(/⭐⭐|🌟🌟/g, '**')
+    .replace(/⭐|🌟/g, '*')
+    // --- Validation / statut ---
+    .replace(/✅/g, '[OK]')
+    .replace(/❌/g, '[X]')
+    .replace(/⚠️|⚠/g, '[!]')
+    .replace(/🔴/g, '(non)')
+    .replace(/🟡/g, '(partiel)')
+    .replace(/🟢/g, '(oui)')
+    .replace(/✓|☑/g, 'OK')
+    .replace(/✗|☒/g, 'X')
+    // --- Indicateurs courants EVFC ---
+    .replace(/🎯/g, '>')
+    .replace(/💡/g, '(i)')
+    .replace(/📋/g, '')
+    .replace(/📝/g, '')
+    .replace(/📄/g, '')
+    .replace(/🔑/g, '[cle]')
+    .replace(/👉/g, '>')
+    .replace(/👀/g, '[voir]')
+    .replace(/🛑/g, '[stop]')
+    .replace(/💬/g, '[?]')
+    // --- Chiffres cerclés ---
+    .replace(/①|1️⃣/g, '1').replace(/②|2️⃣/g, '2').replace(/③|3️⃣/g, '3')
+    .replace(/④|4️⃣/g, '4').replace(/⑤|5️⃣/g, '5')
+    // --- Tirets typographiques ---
+    .replace(/—/g, '-').replace(/–/g, '-').replace(/‒/g, '-')
+    // --- Flèches ---
+    .replace(/→|▶|➡/g, '>').replace(/←|◀|⬅/g, '<')
+    .replace(/↑|⬆/g, '^').replace(/↓|⬇/g, 'v')
+    // --- Supprime les émojis restants (plages Unicode Emoji) ---
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[\u{2B00}-\u{2BFF}]/gu, '')
+    .replace(/[\u{FE00}-\u{FE0F}]/gu, '')
+    // --- Remplace tout ce qui reste hors Latin-1 par '?' ---
+    .replace(/[^\x00-\xFF]/g, '?')
+    .trim();
+}
+
 async function exportPDF() {
   if (!currentResult) return showToast('⚠️ Génère d\'abord un livrable', 'error');
 
@@ -2268,10 +2525,10 @@ async function exportPDF() {
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
-  doc.text('Édumédiapole · Formateur Augmenté EVFC', margin, 12);
+  doc.text(cleanForPDF('Edumédiapole · Formateur Augmenté EVFC'), margin, 12);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${currentSkill.module} — ${currentSkill.name}`, pageW - margin, 12, { align: 'right' });
+  doc.text(cleanForPDF(`${currentSkill.module} — ${currentSkill.name}`), pageW - margin, 12, { align: 'right' });
 
   // Red accent line
   doc.setFillColor(240, 50, 44);
@@ -2280,7 +2537,7 @@ async function exportPDF() {
   // Date
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 120);
-  doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })}`, margin, 26);
+  doc.text(cleanForPDF(`Généré le ${new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })}`), margin, 26);
 
   let y = 32;
 
@@ -2304,14 +2561,14 @@ async function exportPDF() {
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255);
-      doc.text(line.replace(/^# /, '').substring(0, 70), margin, y);
+      doc.text(cleanForPDF(line.replace(/^# /, '')).substring(0, 70), margin, y);
       doc.setTextColor(30, 30, 50);
       y += 10;
     } else if (line.startsWith('## ')) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 36, 85);
-      doc.text(line.replace(/^## /, '').substring(0, 80), margin, y);
+      doc.text(cleanForPDF(line.replace(/^## /, '')).substring(0, 80), margin, y);
       doc.setDrawColor(0, 36, 85);
       doc.setLineWidth(0.3);
       doc.line(margin, y + 1.5, margin + contentW, y + 1.5);
@@ -2321,14 +2578,14 @@ async function exportPDF() {
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(240, 50, 44);
-      doc.text(line.replace(/^### /, '').substring(0, 90), margin, y);
+      doc.text(cleanForPDF(line.replace(/^### /, '')).substring(0, 90), margin, y);
       doc.setTextColor(30, 30, 50);
       y += 7;
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
       doc.setFontSize(9.5);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(40, 40, 60);
-      const clean = line.replace(/^[*-] /, '').replace(/\*\*(.*?)\*\*/g, '$1');
+      const clean = cleanForPDF(line.replace(/^[*-] /, '').replace(/\*\*(.*?)\*\*/g, '$1'));
       const wrapped = doc.splitTextToSize(`• ${clean}`, contentW - 8);
       doc.text(wrapped, margin + 4, y);
       y += wrapped.length * 5.5;
@@ -2341,17 +2598,81 @@ async function exportPDF() {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(100, 40, 40);
-      const clean = line.replace(/^> /, '');
+      const clean = cleanForPDF(line.replace(/^> /, ''));
       doc.text(clean.substring(0, 100), margin + 4, y);
       doc.setTextColor(30, 30, 50);
       y += 10;
     } else if (line.trim() === '' || line.startsWith('---')) {
       y += 3;
-    } else if (line.trim() && !line.startsWith('|') && !line.startsWith('```')) {
+    } else if (line.trim().startsWith('|')) {
+      // --- Tableau Markdown ---
+      // Collecter toutes les lignes consécutives du tableau
+      const tableLines = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      i--; // le for loop fera i++ au prochain tour
+      // Filtrer les séparateurs (--|--|--)
+      const dataRows = tableLines
+        .filter(l => !l.replace(/[\|\s\-:]/g, '').match(/^[-:]+$/) && l.replace(/[\|\s\-:]/g, '') !== '')
+        .map(l => l.split('|').map(c => c.trim()).filter(Boolean));
+      if (dataRows.length === 0) continue;
+      const cols = Math.max(...dataRows.map(r => r.length));
+      const colW = contentW / cols;
+      const cellPad = 2;
+      // Calcul hauteur dynamique par ligne
+      const rowHeights = dataRows.map((row, ri) => {
+        let maxH = 6;
+        row.forEach(cell => {
+          const clean = cleanForPDF(cell.replace(/\*\*(.*?)\*\*/g, '$1'));
+          const wrapped = doc.splitTextToSize(clean, colW - cellPad * 2);
+          const h = wrapped.length * 4.5 + 3;
+          if (h > maxH) maxH = h;
+        });
+        return Math.max(maxH, ri === 0 ? 8 : 6);
+      });
+      const totalH = rowHeights.reduce((a, b) => a + b, 0);
+      // Saut de page si nécessaire
+      if (y + totalH > pageH - 20) {
+        doc.addPage();
+        doc.setFillColor(0, 36, 85);
+        doc.rect(0, 0, pageW, 10, 'F');
+        y = 16;
+      }
+      // Dessin
+      dataRows.forEach((row, ri) => {
+        const rh = rowHeights[ri];
+        if (ri === 0) {
+          doc.setFillColor(0, 36, 85);
+        } else {
+          ri % 2 === 0 ? doc.setFillColor(232, 238, 255) : doc.setFillColor(248, 250, 255);
+        }
+        doc.rect(margin, y, contentW, rh, 'F');
+        doc.setDrawColor(180, 195, 220);
+        doc.setLineWidth(0.2);
+        doc.rect(margin, y, contentW, rh, 'S');
+        row.forEach((cell, ci) => {
+          const cx = margin + ci * colW;
+          const clean = cleanForPDF(cell.replace(/\*\*(.*?)\*\*/g, '$1'));
+          doc.setFontSize(ri === 0 ? 8.5 : 8);
+          doc.setFont('helvetica', ri === 0 ? 'bold' : 'normal');
+          doc.setTextColor(ri === 0 ? 255 : 30, ri === 0 ? 255 : 30, ri === 0 ? 255 : 50);
+          const wrapped = doc.splitTextToSize(clean, colW - cellPad * 2);
+          doc.text(wrapped, cx + cellPad, y + 4.5);
+          if (ci < cols - 1) {
+            doc.setDrawColor(180, 195, 220);
+            doc.line(cx + colW, y, cx + colW, y + rh);
+          }
+        });
+        y += rh;
+      });
+      y += 5;
+    } else if (line.trim() && !line.startsWith('```')) {
       doc.setFontSize(9.5);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(40, 40, 60);
-      const clean = line.replace(/\*\*(.*?)\*\*/g, '$1').replace(/`(.*?)`/g, '$1');
+      const clean = cleanForPDF(line.replace(/\*\*(.*?)\*\*/g, '$1').replace(/`(.*?)`/g, '$1'));
       const wrapped = doc.splitTextToSize(clean, contentW);
       doc.text(wrapped, margin, y);
       y += wrapped.length * 5.5;
@@ -2367,9 +2688,9 @@ async function exportPDF() {
     doc.setFontSize(7.5);
     doc.setTextColor(100, 100, 120);
     doc.setFont('helvetica', 'normal');
-    doc.text('Édumédiapole · bruno.fernon@edumediapole.net', margin, pageH - 4);
+    doc.text(cleanForPDF('Edumédiapole · bfernon@edumediapole.net'), margin, pageH - 4);
     doc.text(`${p} / ${totalPages}`, pageW / 2, pageH - 4, { align: 'center' });
-    doc.text(`${currentSkill.module} — ${currentSkill.name}`, pageW - margin, pageH - 4, { align: 'right' });
+    doc.text(cleanForPDF(`${currentSkill.module} — ${currentSkill.name}`), pageW - margin, pageH - 4, { align: 'right' });
   }
 
   const filename = `EVFC_${currentSkill.module}_${currentSkill.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
@@ -2386,84 +2707,215 @@ async function exportDOCX() {
   showToast('⏳ Export DOCX en cours…');
 
   try {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel, BorderStyle, TableRow, TableCell, Table, WidthType, AlignmentType, ShadingType } = docx;
+    // Chargement dynamique de docx.js si pas encore disponible
+    if (!window.docx) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Impossible de charger docx.js (vérifiez votre connexion)'));
+        document.head.appendChild(s);
+      });
+    }
+    if (!window.docx) throw new Error('docx.js non disponible après chargement');
+    const {
+      Document, Packer, Paragraph, TextRun, BorderStyle,
+      AlignmentType, Table, TableRow, TableCell, WidthType,
+      ShadingType, Header, Footer, PageNumber, TabStopType, TabStopPosition
+    } = window.docx;
+
+    // ── Palette Édumédiapole ──────────────────────────────
+    const NAVY   = '002455';
+    const RED    = 'F0322C';
+    const BLIGHT = 'E8F0FA';   // fond pédagogique bleu clair
+    const ALERT  = 'FFE8E6';   // fond alerte douce
+    const BORDER = 'D8DEE6';
+    const TEXT   = '2B2B2B';
+    const GRAY   = '6B7280';
+    const WHITE  = 'FFFFFF';
+
+    // Nettoyage DOCX : retire émojis + caractères de contrôle XML invalides
+    const cleanDocx = (s) => s
+      ? s.replace(/[\u{1F000}-\u{1FFFF}]/gu, '').replace(/[\u{2600}-\u{27BF}]/gu, '')
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').replace(/—/g, '-').replace(/–/g, '-')
+      : '';
+
+    // Helper : parse inline bold (**...**) en TextRuns
+    const inlineRuns = (rawLine, opts = {}) => {
+      const parts = [];
+      const segments = cleanDocx(rawLine)
+        .replace(/\*\*(.*?)\*\*/g, '\x00BOLD\x00$1\x00ENDBOLD\x00')
+        .split('\x00');
+      let bold = false;
+      segments.forEach(seg => {
+        if (seg === 'BOLD') { bold = true; return; }
+        if (seg === 'ENDBOLD') { bold = false; return; }
+        if (seg) parts.push(new TextRun({ text: seg, bold, font: 'Calibri', ...opts }));
+      });
+      return parts.length ? parts : [new TextRun({ text: cleanDocx(rawLine), font: 'Calibri', ...opts })];
+    };
 
     const children = [];
 
-    // Title page header
+    // ── BLOC TITRE ────────────────────────────────────────
+    // Pastille module (fond rouge)
     children.push(new Paragraph({
-      children: [
-        new TextRun({ text: 'Édumédiapole · Formateur Augmenté EVFC', bold: true, size: 28, color: '002455' })
-      ],
-      spacing: { after: 100 }
+      children: [new TextRun({ text: `  ${currentSkill.module}  `, bold: true, size: 18, color: WHITE, font: 'Calibri' })],
+      shading: { type: ShadingType.CLEAR, fill: RED, color: 'auto' },
+      spacing: { before: 0, after: 100 }
     }));
 
+    // Titre principal
     children.push(new Paragraph({
-      children: [
-        new TextRun({ text: `${currentSkill.module} — ${currentSkill.name}`, size: 22, color: 'F0322C', bold: true })
-      ],
-      spacing: { after: 100 }
+      children: [new TextRun({ text: cleanDocx(currentSkill.name), bold: true, size: 52, color: NAVY, font: 'Calibri' })],
+      spacing: { before: 120, after: 120 },
+      border: { bottom: { style: BorderStyle.THICK, size: 8, color: RED, space: 4 } }
     }));
 
+    // Méta : organisation + date
     children.push(new Paragraph({
       children: [
-        new TextRun({ text: `Généré le ${new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })}`, size: 18, color: '666688', italics: true })
+        new TextRun({ text: 'Édumédiapole · Formateur Augmenté EVFC', size: 18, color: GRAY, italics: true, font: 'Calibri' }),
+        new TextRun({ text: '     ', size: 18 }),
+        new TextRun({ text: `Généré le ${new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })}`, size: 18, color: GRAY, italics: true, font: 'Calibri' })
       ],
-      spacing: { after: 400 }
+      spacing: { before: 80, after: 560 }
     }));
 
-    // Parse markdown
+    // ── CONTENU MARKDOWN ──────────────────────────────────
     const lines = currentResult.split('\n');
 
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
       if (line.startsWith('# ')) {
+        // H1 : bandeau navy plein
         children.push(new Paragraph({
-          text: line.replace(/^# /, ''),
-          heading: HeadingLevel.HEADING_1,
-          spacing: { before: 300, after: 150 }
+          children: [new TextRun({ text: `  ${cleanDocx(line.replace(/^# /, ''))}`, bold: true, size: 28, color: WHITE, font: 'Calibri' })],
+          shading: { type: ShadingType.CLEAR, fill: NAVY, color: 'auto' },
+          spacing: { before: 400, after: 160 }
         }));
+
       } else if (line.startsWith('## ')) {
+        // H2 : texte navy + filet rouge en bas
         children.push(new Paragraph({
-          text: line.replace(/^## /, ''),
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 200, after: 100 }
+          children: inlineRuns(line.replace(/^## /, ''), { size: 26, color: NAVY }),
+          spacing: { before: 320, after: 100 },
+          border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: RED, space: 3 } }
         }));
+
       } else if (line.startsWith('### ')) {
+        // H3 : texte navy gras
         children.push(new Paragraph({
-          text: line.replace(/^### /, ''),
-          heading: HeadingLevel.HEADING_3,
-          spacing: { before: 150, after: 80 }
+          children: inlineRuns(line.replace(/^### /, ''), { size: 22, color: NAVY, bold: true }),
+          spacing: { before: 220, after: 80 }
         }));
+
       } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        const text = line.replace(/^[*-] /, '').replace(/\*\*(.*?)\*\*/g, '$1');
+        const runs = inlineRuns(line.replace(/^[*-] /, ''), { size: 21, color: TEXT });
         children.push(new Paragraph({
-          children: [new TextRun({ text: `• ${text}`, size: 22 })],
+          children: [new TextRun({ text: '•  ', size: 21, color: RED, font: 'Calibri' }), ...runs],
           spacing: { before: 60, after: 60 },
           indent: { left: 360 }
         }));
+
       } else if (line.startsWith('> ')) {
+        // Citation / encadré méthode : fond alerte + bordure rouge gauche
         children.push(new Paragraph({
-          children: [new TextRun({ text: line.replace(/^> /, ''), italics: true, color: '664444', size: 20 })],
-          spacing: { before: 100, after: 100 },
-          indent: { left: 500 },
-          border: { left: { style: BorderStyle.THICK, size: 6, color: 'F0322C', space: 5 } }
+          children: inlineRuns(line.replace(/^> /, ''), { size: 20, color: '5C2020', italics: true }),
+          shading: { type: ShadingType.CLEAR, fill: ALERT, color: 'auto' },
+          spacing: { before: 120, after: 120 },
+          indent: { left: 480, right: 240 },
+          border: { left: { style: BorderStyle.THICK, size: 10, color: RED, space: 8 } }
         }));
+
       } else if (line.trim() === '' || line.startsWith('---')) {
-        children.push(new Paragraph({ text: '', spacing: { after: 100 } }));
-      } else if (line.trim() && !line.startsWith('|') && !line.startsWith('```')) {
-        const clean = line.replace(/\*\*(.*?)\*\*/g, '$1').replace(/`(.*?)`/g, '$1');
-        children.push(new Paragraph({
-          children: [new TextRun({ text: clean, size: 22 })],
-          spacing: { before: 60, after: 60 }
+        children.push(new Paragraph({ text: '', spacing: { after: 80 } }));
+
+      } else if (line.trim().startsWith('|')) {
+        // ── Tableau Markdown ──
+        const tableLines = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) { tableLines.push(lines[i]); i++; }
+        i--;
+        const dataRows = tableLines
+          .filter(l => !l.replace(/[\|\s\-:]/g, '').match(/^[-:]+$/) && l.replace(/[\|\s\-:]/g, '') !== '')
+          .map(l => l.split('|').map(c => c.trim()).filter(Boolean));
+        if (dataRows.length === 0) continue;
+        const cols = Math.max(...dataRows.map(r => r.length));
+        const colPct = Math.floor(100 / cols);
+        const cellBorders = {
+          top:    { style: BorderStyle.SINGLE, size: 2, color: BORDER },
+          bottom: { style: BorderStyle.SINGLE, size: 2, color: BORDER },
+          left:   { style: BorderStyle.SINGLE, size: 2, color: BORDER },
+          right:  { style: BorderStyle.SINGLE, size: 2, color: BORDER }
+        };
+        const tblRows = dataRows.map((row, ri) => new TableRow({
+          tableHeader: ri === 0,
+          children: Array.from({ length: cols }, (_, ci) => {
+            const cellRaw = cleanDocx((row[ci] || '').replace(/\*\*(.*?)\*\*/g, '\x00BOLD\x00$1\x00ENDBOLD\x00'));
+            const isHeader = ri === 0;
+            const fill = isHeader ? NAVY : (ri % 2 === 0 ? BLIGHT : WHITE);
+            const runs = inlineRuns(row[ci] || '', { size: 19, color: isHeader ? WHITE : TEXT, bold: isHeader });
+            return new TableCell({
+              width: { size: colPct, type: WidthType.PERCENTAGE },
+              shading: { type: ShadingType.CLEAR, fill, color: 'auto' },
+              borders: cellBorders,
+              children: [new Paragraph({ children: runs, spacing: { before: 60, after: 60 }, indent: { left: 80, right: 80 } })]
+            });
+          })
         }));
+        children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: tblRows }));
+        children.push(new Paragraph({ text: '', spacing: { after: 160 } }));
+
+      } else if (line.trim() && !line.startsWith('```')) {
+        const runs = inlineRuns(line.replace(/`(.*?)`/g, '$1'), { size: 21, color: TEXT });
+        children.push(new Paragraph({ children: runs, spacing: { before: 60, after: 60 } }));
       }
     }
+
+    // ── EN-TÊTE répété ────────────────────────────────────
+    const docHeader = new Header({
+      children: [new Paragraph({
+        children: [
+          new TextRun({ text: 'Édumédiapole', bold: true, size: 16, color: NAVY, font: 'Calibri' }),
+          new TextRun({ text: `  ·  ${cleanDocx(currentSkill.module)} — ${cleanDocx(currentSkill.name)}`, size: 16, color: GRAY, font: 'Calibri' })
+        ],
+        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: NAVY, space: 4 } },
+        spacing: { after: 120 }
+      })]
+    });
+
+    // ── PIED DE PAGE ──────────────────────────────────────
+    const docFooter = new Footer({
+      children: [new Paragraph({
+        children: [
+          new TextRun({ text: 'bfernon@edumediapole.net', size: 16, color: GRAY, font: 'Calibri' }),
+          new TextRun({ text: '\t', size: 16 }),
+          new TextRun({ children: [PageNumber.CURRENT], size: 16, color: GRAY, font: 'Calibri' }),
+          new TextRun({ text: ' / ', size: 16, color: GRAY, font: 'Calibri' }),
+          new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: GRAY, font: 'Calibri' }),
+          new TextRun({ text: '\t', size: 16 }),
+          new TextRun({ text: new Date().toLocaleDateString('fr-FR'), size: 16, color: GRAY, font: 'Calibri' })
+        ],
+        tabStops: [
+          { type: TabStopType.CENTER, position: TabStopPosition.MAX / 2 },
+          { type: TabStopType.RIGHT, position: TabStopPosition.MAX }
+        ],
+        border: { top: { style: BorderStyle.SINGLE, size: 4, color: NAVY, space: 4 } },
+        spacing: { before: 120 }
+      })]
+    });
 
     const doc2 = new Document({
       creator: 'Édumédiapole · Formateur Augmenté EVFC',
       title: `${currentSkill.module} — ${currentSkill.name}`,
       description: 'Généré par le Pack FPA Édumédiapole',
-      sections: [{ properties: {}, children }]
+      sections: [{
+        properties: { page: { margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } },
+        headers: { default: docHeader },
+        footers: { default: docFooter },
+        children
+      }]
     });
 
     const blob = await Packer.toBlob(doc2);
