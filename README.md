@@ -30,8 +30,10 @@ INTRO → M0 → M1 → M4 → M5 → M6
 
 ## Fonctionnalités
 
-- **Génération IA** via l'API Anthropic (Claude claude-sonnet-4-20250514), appelée directement depuis le navigateur
+- **Génération IA** via l'API Anthropic, appelée directement depuis le navigateur
+- **Sélecteur de modèle Claude** dans l'en-tête : Haiku 4.5 (rapide), Sonnet 4.6 (défaut), Opus 4.8 (puissant) — choix persisté en `localStorage`, recommandation contextuelle affichée dans chaque module
 - **Enchaînement de modules** : résultats d'un module pré-remplissent automatiquement le suivant (M4 → M5, M1/M0/M2 → M3)
+- **Persistance des livrables** : les résultats générés sont conservés en `localStorage` et restent accessibles lors de la navigation entre modules
 - **Export PDF** (jsPDF) avec entête Édumédiapole et numérotation des pages
 - **Export DOCX** (docx.js) avec styles de titres et mise en forme
 - **Google Forms** : génération d'un script Apps Script prêt à coller pour les grilles M5 (formateur + auto-évaluation)
@@ -66,7 +68,7 @@ Au premier lancement, une modale demande la clé API Anthropic. Obtenir une clé
 | Composant | Technologie |
 |-----------|-------------|
 | Interface | HTML5 / CSS3 / JavaScript vanilla |
-| IA | Anthropic API — `claude-claude-sonnet-4-20250514` |
+| IA | Anthropic API — Haiku 4.5 / Sonnet 4.6 / Opus 4.8 (sélectable) |
 | Rendu Markdown | [Marked.js 9.1.6](https://marked.js.org) |
 | Export PDF | [jsPDF 2.5.1](https://github.com/parallax/jsPDF) + html2canvas 1.4.1 |
 | Export DOCX | [docx.js 8.5.0](https://docx.js.org) |
