@@ -2395,7 +2395,8 @@ async function generate() {
 
     const text = data.content?.find(b => b.type === 'text')?.text || '';
     currentResult = text;
-    resultCache[skill.id] = text;  // cache for downstream pre-fill
+    resultCache[skill.id] = text;
+    try { localStorage.setItem('evfc_result_cache', JSON.stringify(resultCache)); } catch(e) {}
 
     renderResult(text, skill);
     showToast('✅ Livrable généré !', 'success');
@@ -3350,6 +3351,10 @@ document.addEventListener('keydown', e => {
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
+try {
+  const saved = localStorage.getItem('evfc_result_cache');
+  if (saved) Object.assign(resultCache, JSON.parse(saved));
+} catch(e) {}
 renderSidebar();
 renderWelcome();
 updateKeyStatus();
