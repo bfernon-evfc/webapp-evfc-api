@@ -1320,10 +1320,47 @@
     padding: 0 3px;
   }
 
+  /* SIDEBAR TOGGLE */
+  .sidebar-toggle {
+    position: fixed;
+    top: 80px;
+    left: 286px;
+    z-index: 200;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-card);
+    transition: left 0.25s ease, background 0.15s, color 0.15s;
+  }
+  .sidebar-toggle:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+  .app-layout.sidebar-collapsed {
+    grid-template-columns: 0px 1fr;
+  }
+  .app-layout.sidebar-collapsed .sidebar {
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+    border-right: none;
+  }
+  .app-layout.sidebar-collapsed ~ .sidebar-toggle,
+  .sidebar-toggle.collapsed {
+    left: 0px;
+  }
+
   /* RESPONSIVE */
   @media (max-width: 768px) {
     .app-layout { grid-template-columns: 1fr; }
     .sidebar { display: none; }
+    .sidebar-toggle { display: none; }
     .panel-title { font-size: 18px; }
     .nav-bar { padding: 8px 12px; }
     .chain-rail { display: none; }
@@ -1354,8 +1391,11 @@
   </div>
 </header>
 
+<!-- SIDEBAR TOGGLE (outside layout to avoid overflow clipping) -->
+<button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Masquer le panneau">◀</button>
+
 <!-- LAYOUT -->
-<div class="app-layout">
+<div class="app-layout" id="app-layout">
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
@@ -1589,6 +1629,16 @@ let resultCache = {};     // { skillId: lastGeneratedText }
 // ─────────────────────────────────────────────
 // THEME
 // ─────────────────────────────────────────────
+function toggleSidebar() {
+  const layout = document.getElementById('app-layout');
+  const btn = document.getElementById('sidebar-toggle');
+  const collapsed = layout.classList.toggle('sidebar-collapsed');
+  btn.textContent = collapsed ? '▶' : '◀';
+  btn.title = collapsed ? 'Afficher le panneau' : 'Masquer le panneau';
+  btn.style.left = collapsed ? '0px' : '286px';
+  localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+}
+
 function toggleTheme() {
   isDark = !isDark;
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
@@ -3226,6 +3276,14 @@ document.addEventListener('keydown', e => {
 renderSidebar();
 renderWelcome();
 updateKeyStatus();
+// Restore sidebar collapsed state
+if (localStorage.getItem('sidebarCollapsed') === '1') {
+  document.getElementById('app-layout').classList.add('sidebar-collapsed');
+  const btn = document.getElementById('sidebar-toggle');
+  btn.textContent = '▶';
+  btn.title = 'Afficher le panneau';
+  btn.style.left = '0px';
+}
 // Prompt clé si absente au démarrage (après 1s pour laisser l'UI se charger)
 if (!getApiKey()) {
   setTimeout(() => showApiKeyModal(), 800);
