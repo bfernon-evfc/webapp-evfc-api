@@ -863,6 +863,71 @@
     line-height: 1.4;
   }
 
+  /* MODEL RECO BANNER */
+  .model-reco-banner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 10px; margin-bottom: 16px;
+    border: 1.5px solid; font-size: 12px;
+  }
+  .model-reco-icon { font-size: 16px; flex-shrink: 0; }
+  .model-reco-body { display: flex; flex-direction: column; gap: 2px; }
+  .model-reco-label {
+    font-size: 10px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.6px; opacity: 0.8;
+  }
+  .model-reco-text { font-size: 12px; font-weight: 600; line-height: 1.4; }
+  .model-reco-action {
+    margin-left: auto; flex-shrink: 0;
+    padding: 5px 10px; border-radius: 6px; font-size: 11px;
+    font-weight: 700; cursor: pointer; border: none; transition: opacity 0.2s;
+  }
+  .model-reco-action:hover { opacity: 0.8; }
+
+  /* WELCOME MODEL SECTION */
+  .welcome-model-section {
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 20px 24px; margin-top: 20px;
+  }
+  .welcome-model-title {
+    font-size: 12px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .welcome-model-cards {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px;
+  }
+  @media(max-width:600px) { .welcome-model-cards { grid-template-columns: 1fr; } }
+  .welcome-model-card {
+    border-radius: 10px; padding: 12px 14px; border: 1.5px solid;
+  }
+  .welcome-model-card-name { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
+  .welcome-model-card-id { font-size: 10px; opacity: 0.65; font-family: monospace; margin-bottom: 6px; }
+  .welcome-model-card-desc { font-size: 11px; line-height: 1.45; opacity: 0.85; }
+  .welcome-model-reco-table {
+    width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px;
+  }
+  .welcome-model-reco-table th {
+    text-align: left; padding: 6px 10px; font-size: 10px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);
+    border-bottom: 1.5px solid var(--border);
+  }
+  .welcome-model-reco-table td {
+    padding: 7px 10px; border-bottom: 1px solid var(--border);
+    vertical-align: middle; color: var(--text);
+  }
+  .welcome-model-reco-table tr:last-child td { border-bottom: none; }
+  .welcome-model-badge {
+    display: inline-block; border-radius: 20px; padding: 2px 8px;
+    font-size: 10px; font-weight: 800; color: white;
+  }
+  .opus-warning {
+    background: rgba(245,158,11,0.08); border: 1.5px solid rgba(245,158,11,0.35);
+    border-radius: 10px; padding: 10px 14px; font-size: 12px;
+    display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;
+    color: var(--text);
+  }
+  .opus-warning-icon { font-size: 18px; flex-shrink: 0; }
+
   /* CHAIN FLOW */
   .chain-flow {
     background: var(--bg-card);
@@ -1533,6 +1598,56 @@
 // ─────────────────────────────────────────────
 // DATA — SKILLS DEFINITION
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// MODEL RECOMMENDATIONS PER SKILL
+// ─────────────────────────────────────────────
+const MODEL_RECO = {
+  intro: { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#0284c7', reason: 'Narrative guidée structurée + sortie longue annotée — Sonnet offre le bon équilibre qualité/coût.' },
+  m0:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#0891b2', reason: 'Restructuration complexe d\'un référentiel en progression EVFC — nécessite compréhension profonde du contexte.' },
+  m1:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#0284c7', reason: 'Séquence complète en 4 phases EVFC, sortie longue et structurée — Sonnet est le meilleur rapport qualité/vitesse.' },
+  m2:    { model: 'claude-haiku-4-5',  label: 'Haiku 4.5',   color: '#7c3aed', reason: 'Bibliothèque de prompts au format PTCF répétitif — Haiku est rapide et économique pour ce type de sortie structurée.' },
+  m3:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#059669', reason: 'Génération de code Apps Script + CSV 9 colonnes aligné pédagogiquement — Sonnet garantit la précision du code.' },
+  m4:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#d97706', reason: 'Scénarios FAIRE ultra-réalistes et nuancés — la créativité contextuelle de Sonnet est idéale ici.' },
+  m5:    { model: 'claude-haiku-4-5',  label: 'Haiku 4.5',   color: '#dc2626', reason: 'Grille critériée à format tabulaire répétitif — Haiku produit des tableaux précis en un temps record.' },
+  m6:    { model: 'claude-haiku-4-5',  label: 'Haiku 4.5',   color: '#db2777', reason: 'Fiche ERA à structure courte et prévisible — Haiku est suffisant et très rapide pour ce format.' },
+  m7:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#374151', reason: 'Génération de JSON n8n complexe + instructions techniques — Sonnet assure la cohérence du code.' },
+};
+
+function modelRecoBanner(skillId) {
+  const reco = MODEL_RECO[skillId];
+  if (!reco) return '';
+  const isCurrent = selectedModel === reco.model;
+  const modelName = { 'claude-haiku-4-5': 'Haiku 4.5', 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-opus-4-8': 'Opus 4.8' }[selectedModel] || selectedModel;
+  return `
+    <div class="model-reco-banner" style="
+      background:${reco.color}0d; border-color:${reco.color}40; color:${reco.color};
+    ">
+      <span class="model-reco-icon">${isCurrent ? '✅' : '💡'}</span>
+      <div class="model-reco-body">
+        <span class="model-reco-label">Modèle recommandé pour ce module</span>
+        <span class="model-reco-text">
+          <strong>${reco.label}</strong>${isCurrent ? ' — déjà sélectionné' : ` — actuellement : <em>${modelName}</em>`}<br>
+          <span style="opacity:.8;font-weight:500">${reco.reason}</span>
+        </span>
+      </div>
+      ${!isCurrent ? `
+        <button class="model-reco-action"
+          style="background:${reco.color};color:white;"
+          onclick="setModelAndUI('${reco.model}')">
+          Utiliser ${reco.label}
+        </button>` : ''}
+    </div>
+  `;
+}
+
+function setModelAndUI(modelId) {
+  setModel(modelId);
+  const sel = document.getElementById('model-select');
+  if (sel) sel.value = modelId;
+  // Re-render current panel to update the banner
+  if (currentSkill) renderSkillPanel();
+}
+
 const SKILLS = [
   {
     id: 'intro',
@@ -1824,6 +1939,56 @@ function renderWelcome() {
               </div>
             `;
           }).join('')}
+        </div>
+      </div>
+
+      <div class="welcome-model-section">
+        <div class="welcome-model-title">🤖 Quel modèle Claude choisir ?</div>
+        <div class="welcome-model-cards">
+          <div class="welcome-model-card" style="background:#7c3aed0d;border-color:#7c3aed40;color:#7c3aed">
+            <div class="welcome-model-card-name">Haiku 4.5</div>
+            <div class="welcome-model-card-id">claude-haiku-4-5</div>
+            <div class="welcome-model-card-desc">Rapide et économique. Idéal pour les sorties structurées et répétitives (grilles, fiches, bibliothèques de prompts).</div>
+          </div>
+          <div class="welcome-model-card" style="background:#0284c70d;border-color:#0284c740;color:#0284c7">
+            <div class="welcome-model-card-name">Sonnet 4.6 ✦ Défaut</div>
+            <div class="welcome-model-card-id">claude-sonnet-4-6</div>
+            <div class="welcome-model-card-desc">Équilibré qualité / vitesse / coût. Recommandé pour la majorité des modules EVFC — génération de code, séquences complexes, scénarios.</div>
+          </div>
+          <div class="welcome-model-card" style="background:#f59e0b0d;border-color:#f59e0b50;color:#b45309">
+            <div class="welcome-model-card-name">Opus 4.8</div>
+            <div class="welcome-model-card-id">claude-opus-4-8</div>
+            <div class="welcome-model-card-desc">Le plus puissant. Disponible mais <strong>non recommandé</strong> par le développeur : coût élevé sans gain significatif sur ces tâches pédagogiques.</div>
+          </div>
+        </div>
+
+        <table class="welcome-model-reco-table">
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Modèle recommandé</th>
+              <th>Pourquoi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(MODEL_RECO).map(([id, r]) => {
+              const s = SKILLS.find(x => x.id === id);
+              const badgeColor = r.model === 'claude-haiku-4-5' ? '#7c3aed' : '#0284c7';
+              return `
+                <tr>
+                  <td><span class="welcome-model-badge" style="background:${s.color}">${s.module}</span> <span style="font-weight:600">${s.shortName}</span></td>
+                  <td><span class="welcome-model-badge" style="background:${badgeColor}">${r.label}</span></td>
+                  <td style="color:var(--text-muted);font-size:11px">${r.reason.split('—')[0].trim()}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <div class="opus-warning">
+          <span class="opus-warning-icon">⚠️</span>
+          <div><strong>Opus 4.8 — disponible mais non recommandé par le développeur.</strong><br>
+          Ce modèle est le plus puissant de la gamme Claude, mais les tâches pédagogiques du Pack EVFC-FPA ne nécessitent pas ce niveau de capacité. Sonnet 4.6 produit des résultats équivalents, 5× plus rapidement et à moindre coût. Opus reste accessible si tu souhaites l'essayer sur un cas particulier.</div>
         </div>
       </div>
     </div>
@@ -2118,6 +2283,7 @@ function renderSkillPanel() {
     ${chainHTML}
     ${m5ContextHTML}
     ${m3ContextHTML}
+    ${modelRecoBanner(skill.id)}
 
     <div class="input-grid">
       ${fieldsHTML}
