@@ -463,6 +463,36 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* RESTORE BANNER */
+  .restore-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--hover);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .restore-btn {
+    flex-shrink: 0;
+    padding: 5px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--navy);
+    background: transparent;
+    color: var(--navy);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .restore-btn:hover { background: var(--navy); color: white; }
+  [data-theme="dark"] .restore-btn { border-color: #7eb3f7; color: #7eb3f7; }
+  [data-theme="dark"] .restore-btn:hover { background: #7eb3f7; color: #0d1117; }
+
   /* RESULT ZONE */
   .result-zone {
     margin-top: 24px;
@@ -2055,6 +2085,12 @@ function renderSkillPanel() {
       <span class="btn-text">⚡ Générer avec l'IA</span>
     </button>
 
+    ${resultCache[skill.id] ? `
+    <div class="restore-banner" id="restore-banner">
+      <span>📄 Un livrable a déjà été généré pour ce module.</span>
+      <button class="restore-btn" onclick="restoreCachedResult()">Revoir le livrable</button>
+    </div>` : ''}
+
     <div id="result-zone"></div>
   `;
 
@@ -2379,6 +2415,15 @@ async function generate() {
 // ─────────────────────────────────────────────
 // RENDER RESULT
 // ─────────────────────────────────────────────
+function restoreCachedResult() {
+  const cached = resultCache[currentSkill.id];
+  if (!cached) return;
+  currentResult = cached;
+  const banner = document.getElementById('restore-banner');
+  if (banner) banner.remove();
+  renderResult(cached, currentSkill);
+}
+
 function renderResult(text, skill) {
   const resultZone = document.getElementById('result-zone');
 
