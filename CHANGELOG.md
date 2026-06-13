@@ -5,6 +5,63 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## Session 13 juin 2026 — Sélecteur de modèle Claude & guide pédagogique
+
+### 1. Pied de page application
+
+- Fond `var(--bg-header)` (bleu navy) pour aligner visuellement avec l'en-tête
+- Texte `rgba(255,255,255,0.7)`, séparateur `·` à opacité réduite
+- "Bruno Fernon" mis en emphase : blanc, `font-weight: 800`, `font-size: 13px`
+
+---
+
+### 2. Sélecteur de modèle Claude dans l'en-tête
+
+- `<select class="model-select">` inséré entre le badge version et le bouton Clé API
+- Trois options disponibles : Haiku 4.5 / Sonnet 4.6 (défaut) / Opus 4.8
+- Choix persisté en `localStorage` (clé `evfc_model`), restauré au rechargement via `initModelSelect()`
+- Remplacement du modèle déprécié `claude-sonnet-4-20250514` (retraite 15 juin 2026) par la variable `selectedModel`
+- Styled pour s'intégrer dans l'en-tête (fond semi-transparent, bordure blanche, flèche SVG custom)
+
+---
+
+### 3. Guide de sélection du modèle à l'écran d'accueil
+
+Section **"Quel modèle Claude choisir ?"** ajoutée après la chaîne de production :
+
+- 3 cartes descriptives (Haiku / Sonnet ✦ Défaut / Opus) avec description d'usage
+- Tableau récapitulatif module par module : module EVFC → modèle recommandé → justification courte
+- Avertissement ambre : **Opus 4.8 disponible mais non recommandé** — coût élevé sans gain significatif sur les tâches pédagogiques EVFC
+
+---
+
+### 4. Bandeau de recommandation de modèle dans chaque module
+
+- Affiché sous le bloc de navigation de chaîne, avant les champs de saisie
+- Couleur du bandeau alignée sur le modèle recommandé (pas le module)
+- Indique le modèle recommandé + la justification pédagogique
+- ✅ si le modèle courant est déjà le bon, 💡 + bouton one-click sinon
+- Le bouton "Utiliser Sonnet 4.6" (ou Haiku) appelle `setModelAndUI()` : met à jour `selectedModel`, `localStorage` et le sélecteur d'en-tête sans rechargement de page
+
+**Répartition des recommandations :**
+
+| Modèle | Modules |
+|---|---|
+| Haiku 4.5 | M2 (prompts structurés), M5 (grille critériée), M6 (fiche ERA) |
+| Sonnet 4.6 | INTRO, M0, M1, M3 (code Apps Script), M4 (scénarios), M7 (JSON n8n) |
+| Opus 4.8 | — non recommandé |
+
+---
+
+### 5. Cohérence des couleurs de badges de modèle
+
+- Ajout de `MODEL_COLORS` et `MODEL_LABELS` comme **source unique de vérité** pour les couleurs et libellés de modèles
+- Suppression de la prop `color` dans `MODEL_RECO` (était la couleur du module, non du modèle)
+- Couleurs canoniques : violet `#7c3aed` (Haiku), bleu `#0284c7` (Sonnet), ambre `#b45309` (Opus)
+- Utilisées partout : cartes d'accueil, badges du tableau récapitulatif, bandeaux dans chaque module
+
+---
+
 ## Session 13 juin 2026 — Corrections & améliorations `index.html`
 
 ### 1. Export PDF
