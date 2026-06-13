@@ -1601,40 +1601,50 @@
 // ─────────────────────────────────────────────
 // MODEL RECOMMENDATIONS PER SKILL
 // ─────────────────────────────────────────────
+const MODEL_COLORS = {
+  'claude-haiku-4-5':  '#7c3aed',
+  'claude-sonnet-4-6': '#0284c7',
+  'claude-opus-4-8':   '#b45309',
+};
+const MODEL_LABELS = {
+  'claude-haiku-4-5':  'Haiku 4.5',
+  'claude-sonnet-4-6': 'Sonnet 4.6',
+  'claude-opus-4-8':   'Opus 4.8',
+};
+
 const MODEL_RECO = {
-  intro: { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#0284c7', reason: 'Narrative guidée structurée + sortie longue annotée — Sonnet offre le bon équilibre qualité/coût.' },
-  m0:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#0891b2', reason: 'Restructuration complexe d\'un référentiel en progression EVFC — nécessite compréhension profonde du contexte.' },
-  m1:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#0284c7', reason: 'Séquence complète en 4 phases EVFC, sortie longue et structurée — Sonnet est le meilleur rapport qualité/vitesse.' },
-  m2:    { model: 'claude-haiku-4-5',  label: 'Haiku 4.5',   color: '#7c3aed', reason: 'Bibliothèque de prompts au format PTCF répétitif — Haiku est rapide et économique pour ce type de sortie structurée.' },
-  m3:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#059669', reason: 'Génération de code Apps Script + CSV 9 colonnes aligné pédagogiquement — Sonnet garantit la précision du code.' },
-  m4:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#d97706', reason: 'Scénarios FAIRE ultra-réalistes et nuancés — la créativité contextuelle de Sonnet est idéale ici.' },
-  m5:    { model: 'claude-haiku-4-5',  label: 'Haiku 4.5',   color: '#dc2626', reason: 'Grille critériée à format tabulaire répétitif — Haiku produit des tableaux précis en un temps record.' },
-  m6:    { model: 'claude-haiku-4-5',  label: 'Haiku 4.5',   color: '#db2777', reason: 'Fiche ERA à structure courte et prévisible — Haiku est suffisant et très rapide pour ce format.' },
-  m7:    { model: 'claude-sonnet-4-6', label: 'Sonnet 4.6',  color: '#374151', reason: 'Génération de JSON n8n complexe + instructions techniques — Sonnet assure la cohérence du code.' },
+  intro: { model: 'claude-sonnet-4-6', reason: 'Narrative guidée structurée + sortie longue annotée — Sonnet offre le bon équilibre qualité/coût.' },
+  m0:    { model: 'claude-sonnet-4-6', reason: 'Restructuration complexe d\'un référentiel en progression EVFC — nécessite compréhension profonde du contexte.' },
+  m1:    { model: 'claude-sonnet-4-6', reason: 'Séquence complète en 4 phases EVFC, sortie longue et structurée — Sonnet est le meilleur rapport qualité/vitesse.' },
+  m2:    { model: 'claude-haiku-4-5',  reason: 'Bibliothèque de prompts au format PTCF répétitif — Haiku est rapide et économique pour ce type de sortie structurée.' },
+  m3:    { model: 'claude-sonnet-4-6', reason: 'Génération de code Apps Script + CSV 9 colonnes aligné pédagogiquement — Sonnet garantit la précision du code.' },
+  m4:    { model: 'claude-sonnet-4-6', reason: 'Scénarios FAIRE ultra-réalistes et nuancés — la créativité contextuelle de Sonnet est idéale ici.' },
+  m5:    { model: 'claude-haiku-4-5',  reason: 'Grille critériée à format tabulaire répétitif — Haiku produit des tableaux précis en un temps record.' },
+  m6:    { model: 'claude-haiku-4-5',  reason: 'Fiche ERA à structure courte et prévisible — Haiku est suffisant et très rapide pour ce format.' },
+  m7:    { model: 'claude-sonnet-4-6', reason: 'Génération de JSON n8n complexe + instructions techniques — Sonnet assure la cohérence du code.' },
 };
 
 function modelRecoBanner(skillId) {
   const reco = MODEL_RECO[skillId];
   if (!reco) return '';
+  const c = MODEL_COLORS[reco.model];
   const isCurrent = selectedModel === reco.model;
-  const modelName = { 'claude-haiku-4-5': 'Haiku 4.5', 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-opus-4-8': 'Opus 4.8' }[selectedModel] || selectedModel;
+  const currentLabel = MODEL_LABELS[selectedModel] || selectedModel;
+  const recoLabel = MODEL_LABELS[reco.model];
   return `
-    <div class="model-reco-banner" style="
-      background:${reco.color}0d; border-color:${reco.color}40; color:${reco.color};
-    ">
+    <div class="model-reco-banner" style="background:${c}0d; border-color:${c}40; color:${c};">
       <span class="model-reco-icon">${isCurrent ? '✅' : '💡'}</span>
       <div class="model-reco-body">
         <span class="model-reco-label">Modèle recommandé pour ce module</span>
         <span class="model-reco-text">
-          <strong>${reco.label}</strong>${isCurrent ? ' — déjà sélectionné' : ` — actuellement : <em>${modelName}</em>`}<br>
+          <strong>${recoLabel}</strong>${isCurrent ? ' — déjà sélectionné' : ` — actuellement : <em>${currentLabel}</em>`}<br>
           <span style="opacity:.8;font-weight:500">${reco.reason}</span>
         </span>
       </div>
       ${!isCurrent ? `
-        <button class="model-reco-action"
-          style="background:${reco.color};color:white;"
+        <button class="model-reco-action" style="background:${c};color:white;"
           onclick="setModelAndUI('${reco.model}')">
-          Utiliser ${reco.label}
+          Utiliser ${recoLabel}
         </button>` : ''}
     </div>
   `;
@@ -1973,11 +1983,10 @@ function renderWelcome() {
           <tbody>
             ${Object.entries(MODEL_RECO).map(([id, r]) => {
               const s = SKILLS.find(x => x.id === id);
-              const badgeColor = r.model === 'claude-haiku-4-5' ? '#7c3aed' : '#0284c7';
               return `
                 <tr>
                   <td><span class="welcome-model-badge" style="background:${s.color}">${s.module}</span> <span style="font-weight:600">${s.shortName}</span></td>
-                  <td><span class="welcome-model-badge" style="background:${badgeColor}">${r.label}</span></td>
+                  <td><span class="welcome-model-badge" style="background:${MODEL_COLORS[r.model]}">${MODEL_LABELS[r.model]}</span></td>
                   <td style="color:var(--text-muted);font-size:11px">${r.reason.split('—')[0].trim()}</td>
                 </tr>
               `;
