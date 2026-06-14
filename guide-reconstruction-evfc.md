@@ -8,7 +8,7 @@ Pack Formation Professionnelle d'Adultes
 
 Version 2.0  ·  12 juin 2026
 
-Bruno Fernon  ·  bruno.fernon@edumediapole.net
+Bruno Fernon  ·  bfernon@edumediapole.net
 
 # **Table des matières**
 
