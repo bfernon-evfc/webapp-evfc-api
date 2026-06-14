@@ -1,6 +1,6 @@
 # Formateur Augmenté EVFC
 
-Application web pédagogique pour formateurs FPA (Formateurs Professionnels d'Adultes), développée par **Édumédiapole**. Génère des livrables de formation complets via l'API Anthropic Claude, directement depuis le navigateur — sans serveur, sans backend.
+Application web pédagogique pour formateurs FPA (Formateurs Professionnels d'Adultes), développée par **Bruno FERNON**. Génère des livrables de formation complets via l'API Anthropic Claude, directement depuis le navigateur — sans serveur, sans backend.
 
 ---
 
