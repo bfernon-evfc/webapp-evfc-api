@@ -163,6 +163,22 @@
   }
   .btn-theme:hover { background: rgba(255,255,255,0.18); }
 
+  .btn-help {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white; border-radius: 8px; padding: 7px 14px;
+    font-size: 13px; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px; font-family: inherit;
+  }
+  .btn-help span:first-child {
+    font-size: 14px; font-weight: 800;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .btn-help:hover { background: rgba(255,255,255,0.18); }
+
   .version-badge {
     background: var(--red);
     color: white;
@@ -1105,6 +1121,107 @@
   }
   .modal-close:hover { background: rgba(255,255,255,0.25); }
 
+  /* ── HELP MODAL ── */
+  .help-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 300; display: flex; align-items: center; justify-content: center;
+    padding: 16px; animation: fadeIn 0.2s ease;
+  }
+  .help-dialog {
+    background: var(--bg-card); border-radius: 14px;
+    width: 100%; max-width: 980px; height: 90vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 28px 70px rgba(0,0,0,0.4);
+    overflow: hidden; animation: slideUp 0.22s ease;
+  }
+  .help-header {
+    background: var(--navy); padding: 14px 20px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .help-header-title {
+    color: white; font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .help-layout {
+    display: flex; flex: 1; overflow: hidden;
+  }
+  .help-toc {
+    width: 220px; flex-shrink: 0; overflow-y: auto;
+    border-right: 1px solid var(--border);
+    padding: 16px 0; background: var(--hover);
+  }
+  .help-toc-title {
+    font-size: 10px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-muted);
+    padding: 0 16px 10px;
+  }
+  .help-toc-link {
+    display: block; padding: 7px 16px; font-size: 12px; font-weight: 500;
+    color: var(--text-muted); cursor: pointer; border-left: 3px solid transparent;
+    transition: all 0.15s; line-height: 1.35; text-decoration: none;
+  }
+  .help-toc-link:hover { color: var(--navy); background: var(--bg-card); border-left-color: var(--border); }
+  .help-toc-link.active { color: var(--navy); font-weight: 700; border-left-color: var(--red); background: var(--bg-card); }
+  [data-theme="dark"] .help-toc-link:hover,
+  [data-theme="dark"] .help-toc-link.active { color: #7eb3f7; }
+  .help-content {
+    flex: 1; overflow-y: auto; padding: 28px 36px;
+  }
+  /* Markdown styles inside help */
+  .help-content h2 {
+    font-size: 17px; font-weight: 800; color: var(--navy);
+    border-bottom: 2px solid var(--red); padding-bottom: 8px;
+    margin: 32px 0 14px; scroll-margin-top: 20px;
+  }
+  .help-content h2:first-child { margin-top: 0; }
+  .help-content h3 {
+    font-size: 14px; font-weight: 700; color: var(--navy);
+    margin: 20px 0 8px;
+  }
+  .help-content h4 {
+    font-size: 13px; font-weight: 700; color: var(--text-muted);
+    margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .help-content p { font-size: 13px; line-height: 1.65; margin-bottom: 10px; color: var(--text); }
+  .help-content ul, .help-content ol {
+    font-size: 13px; line-height: 1.65; padding-left: 20px;
+    margin-bottom: 12px; color: var(--text);
+  }
+  .help-content li { margin-bottom: 4px; }
+  .help-content strong { font-weight: 700; color: var(--text); }
+  .help-content em { font-style: italic; }
+  .help-content code {
+    background: var(--hover); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px;
+    font-family: monospace; font-size: 12px; color: var(--navy);
+  }
+  [data-theme="dark"] .help-content code { color: #7eb3f7; }
+  .help-content pre {
+    background: var(--hover); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+    font-family: monospace; font-size: 12px; overflow-x: auto;
+    margin-bottom: 12px;
+  }
+  .help-content pre code { background: none; border: none; padding: 0; }
+  .help-content blockquote {
+    border-left: 3px solid var(--red); padding: 8px 14px;
+    background: rgba(240,50,44,0.05); border-radius: 0 6px 6px 0;
+    margin: 12px 0; font-size: 13px; color: var(--text-muted);
+  }
+  .help-content table {
+    width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px;
+  }
+  .help-content th {
+    background: var(--navy); color: white; text-align: left;
+    padding: 8px 12px; font-weight: 700; font-size: 11px;
+  }
+  .help-content td {
+    padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top;
+  }
+  .help-content tr:last-child td { border-bottom: none; }
+  .help-content tr:nth-child(even) td { background: var(--hover); }
+  .help-content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
   .modal-steps {
     padding: 14px 20px;
     background: var(--result-bg);
@@ -1543,6 +1660,10 @@
     <button class="key-status" id="key-status-btn" onclick="showApiKeyModal()" title="Configurer ta clé API Anthropic">
       <span class="key-status-dot missing" id="key-status-dot"></span>
       <span id="key-status-label">Clé API</span>
+    </button>
+    <button class="btn-help" onclick="showHelp()" title="Notice utilisateur">
+      <span>?</span>
+      <span>Aide</span>
     </button>
     <button class="btn-theme" onclick="toggleTheme()">
       <span id="theme-icon">🌙</span>
@@ -3601,6 +3722,410 @@ if (localStorage.getItem('sidebarCollapsed') === '1') {
   btn.title = 'Afficher le panneau';
   btn.style.left = '0px';
 }
+// ─────────────────────────────────────────────
+// NOTICE UTILISATEUR
+// ─────────────────────────────────────────────
+const NOTICE_MD = `
+## 1. Présentation générale
+
+Le **Formateur Augmenté EVFC** est un outil web pédagogique qui permet à un formateur de générer automatiquement, grâce à l'intelligence artificielle, l'ensemble des documents nécessaires à la conception d'une formation professionnelle.
+
+L'application repose sur la méthode **EVFC** — un cadre pédagogique structuré en quatre phases :
+
+- **É**couter : apports théoriques transmis aux apprenants
+- **V**oir : démonstration commentée par le formateur
+- **F**aire : mise en pratique par les apprenants
+- **C**onsolider : synthèse, transfert et validation des acquis
+
+En quelques minutes, et sans compétences techniques particulières, le formateur peut produire une séquence pédagogique complète, des scénarios de mise en situation, des grilles d'évaluation, des questionnaires, et bien plus encore.
+
+### Ce que l'application n'est pas
+
+- Ce n'est **pas** une plateforme de formation (LMS) : elle ne gère pas les apprenants, les inscriptions ou les résultats.
+- Ce n'est **pas** un logiciel installé : tout fonctionne directement dans votre navigateur web, sans installation.
+- Ce n'est **pas** gratuit à l'usage : chaque génération consomme des jetons facturés à votre compte Anthropic.
+
+---
+
+## 2. À qui s'adresse cette application ?
+
+### Profil principal : le Formateur Professionnel d'Adultes (FPA)
+
+L'application est conçue pour des professionnels de la formation qui :
+
+- Conçoivent des séquences pédagogiques pour adultes (présentiel, FOAD ou hybride)
+- Souhaitent gagner du temps sur la production de documents pédagogiques
+- Veulent structurer leurs formations selon la méthode EVFC
+- Débutent ou souhaitent approfondir l'usage des outils IA en ingénierie pédagogique
+
+### Exemples concrets d'utilisateurs
+
+| Profil | Cas d'usage typique |
+|--------|---------------------|
+| Formateur indépendant | Produire rapidement une séquence pédagogique pour un nouveau client |
+| Ingénieur pédagogique | Structurer une progression depuis un référentiel RNCP |
+| Formateur en reconversion | Découvrir la méthode EVFC en simulant des cas pratiques |
+| Responsable pédagogique | Standardiser la production documentaire de son équipe |
+
+**Niveau requis :** Aucune compétence en informatique ou en intelligence artificielle n'est nécessaire. Savoir naviguer sur un site web est suffisant.
+
+---
+
+## 3. Ce que l'application permet de faire
+
+L'application propose **9 modules**, chacun produisant un type de livrable pédagogique différent.
+
+| Module | Nom | Ce qu'il produit | Quand l'utiliser |
+|--------|-----|-----------------|-----------------|
+| **INTRO** | Simulateur EDC EVFC | Une étude de cas guidée pour découvrir l'écosystème EVFC | En début de parcours, avant toute production |
+| **M0** | Progression Pédagogique | Un plan de formation structuré depuis un référentiel | Quand on part d'un référentiel ou d'un bloc de compétences |
+| **M1** | Séquence EVFC | Une séquence complète en 4 phases EVFC | Pour concevoir une séance de formation de A à Z |
+| **M2** | Prompts Pédagogiques FPA | Une bibliothèque de prompts prêts à copier-coller dans Claude | Pour enrichir ses usages de l'IA pédagogique |
+| **M3** | QCM / QRL Google Forms | Un questionnaire + fichier CSV + script Google Forms | Pour évaluer les connaissances (phases Écouter/Voir) |
+| **M4** | Scénarios FAIRE | Des mises en situation professionnelles réalistes | Pour créer les exercices pratiques de la phase Faire |
+| **M5** | Grilles Critériées | Une grille d'évaluation observable par critères | Pour évaluer objectivement la performance des apprenants |
+| **M6** | Boucle E.R.A. | Une fiche de remédiation Empathie-Résolution-Adhésion | Quand un apprenant est en difficulté ou en blocage |
+| **M7** | Automatisation n8n | Un workflow d'automatisation pédagogique | Pour automatiser l'envoi de livrables (usage avancé) |
+
+### Chaîne de production recommandée
+
+\`\`\`
+INTRO → M0 → M1 → M4 → M5 → M6
+\`\`\`
+
+Chaque module peut pré-remplir automatiquement le suivant : les informations saisies dans M1 sont réutilisées dans M3, M4 et M5 sans avoir à les ressaisir.
+
+---
+
+## 4. Découverte de l'interface
+
+L'interface est divisée en quatre zones principales.
+
+### 4.1 La barre de navigation (en haut)
+
+Toujours visible en haut de l'écran, elle contient :
+
+- **Le logo Édumédiapole** : cliquer dessus ramène à l'écran d'accueil
+- **Le badge de version** (ex. : \`v2.0\`)
+- **Le sélecteur de modèle Claude** : choisir entre trois niveaux de puissance de l'IA (voir section 6)
+- **Le bouton 🔑 Clé API** : permet de saisir ou modifier votre clé d'accès à l'IA
+- **Le bouton ? Aide** : ouvre cette notice
+- **Le bouton 🌙 Sombre / ☀️ Clair** : bascule entre mode sombre et mode clair
+
+### 4.2 Le panneau latéral (à gauche)
+
+Il liste les 9 modules disponibles. Cliquer sur un module l'ouvre dans la zone principale. Le module actif est mis en évidence par un trait rouge sur sa gauche.
+
+> **Astuce** : le panneau latéral peut être masqué en cliquant sur le bouton \`◀\` pour agrandir la zone de travail.
+
+### 4.3 La zone de travail (au centre-droite)
+
+#### Le bandeau de chaîne
+Indique les modules recommandés avant et après celui que vous consultez.
+
+#### Le bandeau de recommandation de modèle
+Indique quel modèle Claude est recommandé pour ce module et pourquoi. Un bouton permet de basculer vers ce modèle en un clic.
+
+#### Le formulaire de saisie
+Chaque module propose des champs à remplir. Les champs marqués d'un **astérisque rouge \*** sont obligatoires.
+
+#### La zone de résultat
+Apparaît après la génération. Elle contient le livrable Markdown et une barre d'outils : 📋 Copier · 📄 PDF · 📝 DOCX.
+
+### 4.4 Le pied de page (en bas)
+
+Bande bleue marine affichant les informations de contact et de version.
+
+---
+
+## 5. Premiers pas dans l'application
+
+### Étape 1 — Obtenir une clé API Anthropic
+
+1. Rendez-vous sur [console.anthropic.com](https://console.anthropic.com)
+2. Créez un compte (ou connectez-vous)
+3. Dans le menu, cliquez sur **API Keys**
+4. Cliquez sur **Create Key**, donnez-lui un nom (ex. : « EVFC »), copiez la clé affichée
+
+> ⚠️ **Cette clé ne s'affiche qu'une seule fois.** Copiez-la immédiatement dans un endroit sûr.
+
+**Résultat attendu :** Une clé commençant par \`sk-ant-api03-…\`
+
+### Étape 2 — Saisir la clé dans l'application
+
+1. Cliquez sur le bouton **🔑 Clé API** dans la barre de navigation
+2. Collez votre clé dans le champ
+3. Cliquez sur **✅ Enregistrer**
+
+> La clé est mémorisée dans votre navigateur. Si vous changez de navigateur ou d'ordinateur, vous devrez la saisir à nouveau.
+
+### Étape 3 — Explorer l'écran d'accueil
+
+1. Lisez la section **"Chaîne de production recommandée"**
+2. Lisez la section **"Quel modèle Claude choisir ?"** pour comprendre les niveaux disponibles
+
+### Étape 4 — Lancer votre première génération (module INTRO)
+
+1. Dans le panneau latéral, cliquez sur **INTRO — Découverte**
+2. Remplissez les champs (secteur professionnel, type de formation, niveau IA)
+3. Cliquez sur **⚡ Générer avec l'IA**
+4. Attendez 10 à 30 secondes selon le modèle choisi
+
+> Si rien ne se passe après 60 secondes, vérifiez votre clé API et votre connexion internet.
+
+### Étape 5 — Exporter le livrable
+
+- **📋 Copier** : copie le texte (à coller dans Word, Notion, etc.)
+- **📄 PDF** : télécharge un fichier PDF aux couleurs Édumédiapole
+- **📝 DOCX** : télécharge un fichier Word mis en forme
+
+---
+
+## 6. Guide des actions essentielles
+
+### Choisir le bon modèle Claude
+
+| Modèle | Caractéristiques | Modules recommandés |
+|--------|-----------------|---------------------|
+| **Haiku 4.5** | Rapide, économique, efficace sur les tâches structurées | M2 (prompts), M5 (grilles), M6 (ERA) |
+| **Sonnet 4.6** *(défaut)* | Équilibre qualité/vitesse — recommandé pour la majorité des usages | INTRO, M0, M1, M3, M4, M7 |
+| **Opus 4.8** | Le plus puissant, mais coûteux — sans gain significatif sur les tâches pédagogiques | Non recommandé |
+
+1. Repérez le sélecteur de modèle dans la barre de navigation
+2. Sélectionnez le modèle souhaité **— ou** utilisez le bouton de recommandation dans chaque module
+
+### Générer une séquence pédagogique complète (M1)
+
+1. Cliquez sur **M1 — Séquence complète**
+2. Renseignez la **compétence observable cible** avec précision (ex. : « Configurer un réseau local en étoile sous Windows »)
+3. Renseignez le **public apprenant** et la **durée** (obligatoires)
+4. Cliquez sur **⚡ Générer**
+
+> **Erreur fréquente :** Une compétence vague (ex. : « formation réseau ») produit un résultat générique. Préférez une formulation précise et observable.
+
+### Générer des scénarios de mise en situation (M4)
+
+1. Cliquez sur **M4 — Mise en situation**
+2. Renseignez la compétence et le contexte professionnel (avec une entreprise fictive)
+3. Choisissez le niveau de difficulté et le nombre de scénarios (commencez par 1 ou 3)
+
+> Si vous avez déjà généré une séquence M1, l'application proposera de pré-remplir M4 automatiquement.
+
+### Créer un QCM exportable vers Google Forms (M3)
+
+1. Cliquez sur **M3 — QCM + Apps Script**
+2. Si une séquence M1/M0/M2 est disponible, cliquez sur **« Utiliser M1 »** pour pré-remplir
+3. Générez, puis copiez le CSV dans **Google Sheets** et exécutez le script Apps Script fourni
+
+> ⚠️ Coller le CSV directement dans Google Forms ne fonctionne pas. Passez par Google Sheets + Apps Script.
+
+### Générer une fiche de remédiation (M6 — Boucle E.R.A.)
+
+1. Cliquez sur **M6 — Remédiation**
+2. Décrivez précisément le **comportement observé** (pas votre interprétation)
+3. Indiquez la phase EVFC concernée et le profil apprenant (optionnel)
+
+> Plus la description du blocage est précise, plus les conseils seront actionnables.
+
+### Naviguer entre les modules en chaîne
+
+1. Après génération, cliquez sur le module suivant dans le **bandeau de chaîne**
+2. Si des données sont disponibles, un bouton **« Utiliser [Module] »** apparaît pour pré-remplir automatiquement
+
+---
+
+## 7. Glossaire
+
+| Terme | Définition |
+|-------|-----------|
+| **EVFC** | Méthode pédagogique en 4 phases : Écouter, Voir, Faire, Consolider |
+| **FPA** | Formateur Professionnel d'Adultes |
+| **Livrable** | Document produit par l'IA à l'issue d'une génération |
+| **Clé API** | Code d'accès personnel pour utiliser le service IA Claude (\`sk-ant-…\`) |
+| **Token** | Unité de mesure de l'IA (environ ¾ d'un mot) — chaque génération en consomme des milliers |
+| **Markdown** | Format de mise en forme textuelle (titres, listes, tableaux) |
+| **localStorage** | Espace de stockage dans votre navigateur — votre clé API y est enregistrée |
+| **EDC** | Étude De Cas — scénario pédagogique simulé (module INTRO) |
+| **QCM / QRL** | Questionnaire à Choix Multiple / Questions à Réponse Libre |
+| **Apps Script** | Langage Google pour automatiser Google Forms et Sheets |
+| **ERA** | Empathie, Résolution, Adhésion — les 3 étapes de la remédiation (module M6) |
+| **n8n** | Outil d'automatisation de flux de travail (module M7) |
+| **Chaîne** | Enchaînement recommandé de modules pour une production cohérente |
+| **Modèle Claude** | Version du moteur IA utilisé (Haiku / Sonnet / Opus) |
+| **RNCP** | Répertoire National des Certifications Professionnelles |
+
+---
+
+## 8. Bonnes pratiques
+
+### Organisation
+- Suivez la chaîne recommandée (**INTRO → M0 → M1 → M4 → M5 → M6**) pour des livrables cohérents entre eux.
+- Exportez chaque livrable dès qu'il vous convient : les résultats sont conservés en mémoire pendant votre session, mais disparaissent si vous fermez l'onglet.
+- Commencez par **INTRO** si vous découvrez la méthode EVFC.
+
+### Qualité des saisies
+- Soyez précis dans vos champs : l'IA produit un résultat directement proportionnel à la qualité des informations fournies.
+- Utilisez des **compétences observables** : préférez « Rédiger une fiche de paie en respectant les rubriques légales » à « Comprendre la paie ».
+- Fournissez un **contexte professionnel fictif mais réaliste** : cela ancre les scénarios dans la réalité.
+
+### Gestion des coûts
+- Utilisez **Haiku 4.5** pour les tâches simples (grilles, prompts) — c'est le modèle le moins coûteux.
+- Évitez **Opus 4.8** pour les tâches pédagogiques courantes : le gain de qualité est négligeable par rapport au surcoût.
+- Consultez votre tableau de bord de consommation sur [console.anthropic.com](https://console.anthropic.com).
+
+### Sécurité
+- Ne partagez jamais votre clé API : elle est liée à votre compte et votre facturation.
+- Sur un ordinateur partagé, cliquez sur **🗑 Effacer** dans la modale de clé API avant de quitter.
+- Votre clé n'est jamais transmise à Édumédiapole — elle part directement de votre navigateur vers Anthropic.
+
+### Productivité
+- Utilisez les **boutons de pré-remplissage** entre modules pour éviter de ressaisir les mêmes informations.
+- Raccourci **\`Alt + →\`** : module suivant dans la chaîne.
+- Masquez le panneau latéral (\`◀\`) pour agrandir la zone de lecture.
+- Utilisez le **bouton 📋 Copier** sur les blocs de code pour copier sans erreur de formatage.
+
+---
+
+## 9. Problèmes fréquents et solutions
+
+| Problème | Cause possible | Solution |
+|----------|---------------|----------|
+| « Clé invalide — doit commencer par sk- » | Clé incomplète ou copiée avec des espaces | Créez une nouvelle clé sur console.anthropic.com |
+| La génération ne démarre pas | Clé API absente ou invalide | Vérifiez la clé via le bouton 🔑 |
+| La génération tourne sans s'arrêter | Connexion internet ou délai de l'API | Attendez 60 s, puis rechargez la page |
+| Le livrable est vide ou très court | Champs remplis trop brièvement | Recommencez avec des descriptions plus détaillées |
+| Les champs sont encadrés en rouge | Champs obligatoires (*) non remplis | Remplissez tous les champs marqués d'un astérisque |
+| Le PDF ne se télécharge pas | Bloqueur du navigateur | Autorisez les téléchargements depuis ce site |
+| Le DOCX ne s'ouvre pas correctement | Version ancienne de Word | Mettez à jour ou ouvrez avec Word en ligne |
+| Le résultat a disparu après navigation | Comportement normal (mémoire de session) | Exportez chaque livrable immédiatement après génération |
+| Le bouton « Utiliser M1 » n'apparaît pas en M3 | Aucun livrable M1 n'a été généré | Générez d'abord une séquence en M1, puis revenez en M3 |
+| Résultats en anglais | Rare anomalie de l'IA | Ajoutez « Réponds uniquement en français » dans vos champs |
+
+---
+
+## 10. Résumé de prise en main rapide
+
+### Les 5 actions à connaître absolument
+
+1. **Obtenir et saisir votre clé API Anthropic** — sans elle, rien ne fonctionne (bouton 🔑)
+2. **Choisir le bon module** selon ce que vous souhaitez produire (voir tableau section 3)
+3. **Remplir les champs avec précision** — la qualité du livrable dépend de la qualité de vos saisies
+4. **Cliquer sur « ⚡ Générer »** et patienter quelques secondes
+5. **Exporter le livrable** immédiatement (PDF, DOCX ou Copier)
+
+### Les 3 erreurs à éviter
+
+1. **Saisir une compétence vague** → préférez une formulation précise et observable
+2. **Fermer l'onglet sans exporter** → les résultats ne sont pas sauvegardés automatiquement entre sessions
+3. **Utiliser Opus 4.8 par défaut** → plus lent, plus coûteux, sans avantage sur les tâches pédagogiques courantes
+
+### Le meilleur parcours pour démarrer
+
+\`\`\`
+1. Obtenir sa clé API sur console.anthropic.com
+2. La saisir dans l'application (bouton 🔑)
+3. Ouvrir le module INTRO
+4. Saisir son secteur et son type de formation
+5. Cliquer sur Générer → lire et explorer le résultat
+6. Enchaîner vers M1 pour créer sa première séquence EVFC
+7. Exporter en PDF
+\`\`\`
+
+---
+
+*Notice v2.0 — Édumédiapole / Bruno Fernon · juin 2026*
+`;
+
+const HELP_TOC = [
+  { id: 'section-1', label: '1. Présentation générale' },
+  { id: 'section-2', label: '2. Public cible' },
+  { id: 'section-3', label: '3. Ce que l\'application fait' },
+  { id: 'section-4', label: '4. Découverte de l\'interface' },
+  { id: 'section-5', label: '5. Premiers pas' },
+  { id: 'section-6', label: '6. Guide des actions' },
+  { id: 'section-7', label: '7. Glossaire' },
+  { id: 'section-8', label: '8. Bonnes pratiques' },
+  { id: 'section-9', label: '9. Problèmes & solutions' },
+  { id: 'section-10', label: '10. Prise en main rapide' },
+];
+
+function showHelp() {
+  const overlay = document.createElement('div');
+  overlay.className = 'help-overlay';
+  overlay.id = 'help-overlay';
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeHelp(); });
+
+  // Render markdown
+  const html = marked.parse(NOTICE_MD);
+
+  // Build TOC
+  const tocHTML = HELP_TOC.map((item, i) => `
+    <a class="help-toc-link" data-idx="${i}" onclick="helpScrollTo('section-${i+1}', this)">${item.label}</a>
+  `).join('');
+
+  overlay.innerHTML = `
+    <div class="help-dialog">
+      <div class="help-header">
+        <div class="help-header-title">
+          <span style="background:var(--red);color:white;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.5px;">AIDE</span>
+          Notice utilisateur — Formateur Augmenté EVFC
+        </div>
+        <button class="modal-close" onclick="closeHelp()" title="Fermer">✕</button>
+      </div>
+      <div class="help-layout">
+        <nav class="help-toc">
+          <div class="help-toc-title">Sommaire</div>
+          ${tocHTML}
+        </nav>
+        <div class="help-content" id="help-content">${html}</div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Assign IDs to h2 headings
+  const content = document.getElementById('help-content');
+  content.querySelectorAll('h2').forEach((el, i) => {
+    el.id = `section-${i+1}`;
+  });
+
+  // Activate first TOC item
+  const firstLink = overlay.querySelector('.help-toc-link');
+  if (firstLink) firstLink.classList.add('active');
+
+  // Track active section on scroll
+  const links = overlay.querySelectorAll('.help-toc-link');
+  content.addEventListener('scroll', () => {
+    const scrollTop = content.scrollTop + 40;
+    const headings = content.querySelectorAll('h2');
+    let activeIdx = 0;
+    headings.forEach((h, i) => {
+      if (h.offsetTop <= scrollTop) activeIdx = i;
+    });
+    links.forEach(l => l.classList.remove('active'));
+    if (links[activeIdx]) links[activeIdx].classList.add('active');
+  });
+
+  // Close on Escape
+  document._helpKeyHandler = e => { if (e.key === 'Escape') closeHelp(); };
+  document.addEventListener('keydown', document._helpKeyHandler);
+}
+
+function helpScrollTo(sectionId, linkEl) {
+  const content = document.getElementById('help-content');
+  const target = document.getElementById(sectionId);
+  if (content && target) content.scrollTo({ top: target.offsetTop - 16, behavior: 'smooth' });
+  document.querySelectorAll('.help-toc-link').forEach(l => l.classList.remove('active'));
+  if (linkEl) linkEl.classList.add('active');
+}
+
+function closeHelp() {
+  const overlay = document.getElementById('help-overlay');
+  if (overlay) overlay.remove();
+  document.removeEventListener('keydown', document._helpKeyHandler);
+}
+
 // Prompt clé si absente au démarrage (après 1s pour laisser l'UI se charger)
 if (!getApiKey()) {
   setTimeout(() => showApiKeyModal(), 800);
