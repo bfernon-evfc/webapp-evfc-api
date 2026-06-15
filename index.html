@@ -1745,15 +1745,15 @@ const MODEL_LABELS = {
 };
 
 const MODEL_RECO = {
-  intro: { model: 'claude-sonnet-4-6', reason: 'Narrative guidée structurée + sortie longue annotée — Sonnet offre le bon équilibre qualité/coût.' },
-  m0:    { model: 'claude-sonnet-4-6', reason: 'Restructuration complexe d\'un référentiel en progression EVFC — nécessite compréhension profonde du contexte.' },
-  m1:    { model: 'claude-sonnet-4-6', reason: 'Séquence complète en 4 phases EVFC, sortie longue et structurée — Sonnet est le meilleur rapport qualité/vitesse.' },
-  m2:    { model: 'claude-haiku-4-5',  reason: 'Bibliothèque de prompts au format PTCF répétitif — Haiku est rapide et économique pour ce type de sortie structurée.' },
-  m3:    { model: 'claude-sonnet-4-6', reason: 'Génération de code Apps Script + CSV 9 colonnes aligné pédagogiquement — Sonnet garantit la précision du code.' },
-  m4:    { model: 'claude-sonnet-4-6', reason: 'Scénarios FAIRE ultra-réalistes et nuancés — la créativité contextuelle de Sonnet est idéale ici.' },
-  m5:    { model: 'claude-haiku-4-5',  reason: 'Grille critériée à format tabulaire répétitif — Haiku produit des tableaux précis en un temps record.' },
-  m6:    { model: 'claude-haiku-4-5',  reason: 'Fiche ERA à structure courte et prévisible — Haiku est suffisant et très rapide pour ce format.' },
-  m7:    { model: 'claude-sonnet-4-6', reason: 'Génération de JSON n8n complexe + instructions techniques — Sonnet assure la cohérence du code.' },
+  intro: { model: 'claude-sonnet-4-6', reason: 'Narrative guidée structurée + sortie longue annotée - Sonnet offre le bon équilibre qualité/coût.' },
+  m0:    { model: 'claude-sonnet-4-6', reason: 'Restructuration complexe d\'un référentiel en progression EVFC - nécessite compréhension profonde du contexte.' },
+  m1:    { model: 'claude-sonnet-4-6', reason: 'Séquence complète en 4 phases EVFC, sortie longue et structurée - Sonnet est le meilleur rapport qualité/vitesse.' },
+  m2:    { model: 'claude-haiku-4-5',  reason: 'Bibliothèque de prompts au format PTCF répétitif - Haiku est rapide et économique pour ce type de sortie structurée.' },
+  m3:    { model: 'claude-sonnet-4-6', reason: 'Génération de code Apps Script + CSV 9 colonnes aligné pédagogiquement - Sonnet garantit la précision du code.' },
+  m4:    { model: 'claude-sonnet-4-6', reason: 'Scénarios FAIRE ultra-réalistes et nuancés - la créativité contextuelle de Sonnet est idéale ici.' },
+  m5:    { model: 'claude-haiku-4-5',  reason: 'Grille critériée à format tabulaire répétitif - Haiku produit des tableaux précis en un temps record.' },
+  m6:    { model: 'claude-haiku-4-5',  reason: 'Fiche ERA à structure courte et prévisible - Haiku est suffisant et très rapide pour ce format.' },
+  m7:    { model: 'claude-sonnet-4-6', reason: 'Génération de JSON n8n complexe + instructions techniques - Sonnet assure la cohérence du code.' },
 };
 
 function modelRecoBanner(skillId) {
@@ -1859,7 +1859,7 @@ Présente sous forme structurée en Markdown avec tableaux et listes.`
     module: 'M2',
     name: 'Prompts Pédagogiques FPA',
     shortName: 'IA + Prompts',
-    desc: 'Bibliothèque de prompts prêts à l\'emploi — à utiliser dans Claude + plugin Pack EVFC-FPA',
+    desc: 'Bibliothèque de prompts prêts à l\'emploi - à utiliser dans Claude + plugin Pack EVFC-FPA',
     color: '#7c3aed',
     chain: ['m1', 'm4'],
     fields: [
