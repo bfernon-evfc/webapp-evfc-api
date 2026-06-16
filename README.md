@@ -42,7 +42,7 @@ M7 intervient en aval pour automatiser l'exploitation ou la distribution des liv
 - **Injection des skills EVFC** : le `SKILL.md` du module actif est intégré au prompt système envoyé au modèle.
 - **Sélecteur de modèle Claude** dans l'en-tête : Haiku 4.5, Sonnet 4.6 par défaut, Opus 4.8.
 - **Catalogue centralisé des modèles** via `MODEL_IDS` / `MODEL_CATALOG`, utilisé par le sélecteur, l'accueil et les recommandations.
-- **Longueur configurable par module** : choix `max_tokens` parmi 3 000, 6 000, 8 000 ou 12 000 tokens, persisté dans `localStorage`.
+- **Longueur configurable par module** : choix `max_tokens` parmi 6 000, 8 000, 12 000, 18 000, 24 000 ou 36 000 tokens, ou option « Pas de limite » (résolue vers le maximum du modèle sélectionné), persisté dans `localStorage`.
 - **Créativité configurable par module** : choix `temperature` parmi 0.2, 0.5, 0.7 ou 1.0, persisté dans `localStorage`.
 - **Bouton "Copier le prompt"** avant génération : copie le prompt complet, incluant modèle, limite de tokens, temperature, system prompt enrichi et message utilisateur.
 - **Feedback visible en cas d'échec localStorage** : cache plein, stockage indisponible ou données locales illisibles ne restent plus silencieux.
@@ -131,6 +131,25 @@ Le contenu des `SKILL.md` module est embarqué dans `index.html` sous forme de t
 | `evfc_max_tokens_by_module` | Préférences de longueur par module |
 | `evfc_temperature_by_module` | Préférences de créativité par module |
 | `sidebarCollapsed` | État du panneau latéral |
+
+---
+
+## Utilisation des tokens
+
+Repères de consommation de tokens mesurés par le développeur lors de tests de génération réels, module par module :
+
+| Module | Tokens d'entrée | Tokens de sortie | Température testée | Modèle utilisé |
+|--------|------------------|-------------------|---------------------|-----------------|
+| INTRO | 2 656 | 10 079 | 0.7 | Sonnet 4.6 |
+| M0 | 2 656 | 10 079 | 0.7 | Sonnet 4.6 |
+| M1 | 1 610 | 8 046 | 0.5 | Sonnet 4.6 |
+| M2 | 1 829 | 32 900 | 0.5 | Haiku 4.5 |
+| M3 | 2 085 | 12 727 | 0.2 | Sonnet 4.6 |
+| M4 | 1 644 | 5 799 | 0.5 | Sonnet 4.6 |
+| M5 | 2 155 | 5 401 | 0.2 | Haiku 4.5 |
+| M6 | 2 155 | 5 224 | 0.5 | Haiku 4.5 |
+
+> ⚠️ Ces valeurs sont **indicatives** : elles dépendent fortement du contenu fourni en entrée (taille du référentiel, du scénario, de la consigne...) et peuvent varier sensiblement d'une génération à l'autre. Elles servent uniquement de point de repère pour choisir une valeur de **« Longueur maximale du livrable »** cohérente avec le module utilisé, en gardant une marge au-dessus des tokens de sortie observés.
 
 ---
 
