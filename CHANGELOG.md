@@ -8,6 +8,24 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 16 juin 2026 — Modèle affiché sur le livrable et révision des paliers de longueur — Mis à jour avec Claude
+
+### 1. Mention du modèle Claude utilisé sous le titre du livrable
+
+- Ajout d'une ligne discrète `Généré avec {Modèle}` sous le titre de chaque livrable généré
+- Le modèle utilisé est mémorisé par module via `evfc_result_model_by_module` (localStorage)
+- Affiché aussi bien après une génération fraîche qu'après restauration d'un livrable mémorisé (`Revoir le livrable`)
+
+### 2. Révision des paliers de "Longueur maximale du livrable"
+
+- Nouveaux paliers `TOKEN_PRESETS` : 6 000 / 12 000 / 18 000 / 24 000 (remplacent 3 000 / 6 000 / 8 000 / 12 000)
+- Raison : l'injection du skill complet dans le prompt système (ajouté en session 15-16 juin) entraîne des réponses plus longues et plus riches, nécessitant des plafonds de tokens plus élevés
+- Nouveaux défauts par module (`DEFAULT_MAX_TOKENS_BY_MODULE`) :
+  - INTRO, M0, M1, M3, M5, M6 → 6 000
+  - M2, M4, M7 → 18 000
+
+---
+
 ## Session 16 juin 2026 — Temperature par module et export DOCX combiné — Mis à jour avec Codex
 
 ### 1. `temperature` configurable par module

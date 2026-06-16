@@ -621,6 +621,13 @@
     animation: pulse 2s ease-in-out infinite;
   }
 
+  .result-model-hint {
+    padding: 2px 16px 0;
+    font-size: 11px;
+    color: var(--text-muted);
+    opacity: 0.75;
+  }
+
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
@@ -1788,6 +1795,7 @@ const STORAGE_KEYS = {
   apiKey: 'evfc_anthropic_api_key',
   model: 'evfc_model',
   resultCache: 'evfc_result_cache',
+  resultModelByModule: 'evfc_result_model_by_module',
   maxTokensByModule: 'evfc_max_tokens_by_module',
   temperatureByModule: 'evfc_temperature_by_module',
   sidebarCollapsed: 'sidebarCollapsed',
@@ -1818,17 +1826,17 @@ const MODEL_LABELS = Object.fromEntries(
 );
 
 const DEFAULT_MODEL_ID = Object.keys(MODEL_CATALOG).find(id => MODEL_CATALOG[id].default) || MODEL_IDS.sonnet46;
-const TOKEN_PRESETS = [3000, 6000, 8000, 12000];
+const TOKEN_PRESETS = [6000, 12000, 18000, 24000];
 const DEFAULT_MAX_TOKENS_BY_MODULE = {
   intro: 6000,
   m0: 6000,
   m1: 6000,
-  m2: 8000,
+  m2: 18000,
   m3: 6000,
-  m4: 8000,
+  m4: 18000,
   m5: 6000,
-  m6: 4000,
-  m7: 8000,
+  m6: 6000,
+  m7: 18000,
 };
 const TEMPERATURE_PRESETS = [
   { value: 0.2, label: '0.2 — cadré' },
@@ -2148,6 +2156,7 @@ let isDark = false;
 let navHistory = [];      // stack of skill ids visited
 let activeChain = [];     // current chain being navigated
 let resultCache = {};     // { skillId: lastGeneratedText }
+let resultModelByModule = parseStoredJson(STORAGE_KEYS.resultModelByModule, {}); // { skillId: modelId }
 let maxTokensByModule = parseStoredJson(STORAGE_KEYS.maxTokensByModule, {});
 let temperatureByModule = parseStoredJson(STORAGE_KEYS.temperatureByModule, {});
 
@@ -3053,6 +3062,11 @@ async function generate() {
     const text = data.content?.find(b => b.type === 'text')?.text || '';
     currentResult = text;
     resultCache[skill.id] = text;
+    resultModelByModule[skill.id] = selectedModel;
+    safeSetLocalStorage(
+      STORAGE_KEYS.resultModelByModule,
+      JSON.stringify(resultModelByModule)
+    );
     safeSetLocalStorage(
       STORAGE_KEYS.resultCache,
       JSON.stringify(resultCache),
@@ -3134,6 +3148,12 @@ function renderResult(text, skill) {
     ? `Bibliothèque de prompts M2 · ${styleEVFC(skill.name)}`
     : `Livrable — ${skill.module} · ${styleEVFC(skill.name)}`;
 
+  // Mention discrète du modèle Claude utilisé pour cette génération
+  const usedModel = resultModelByModule[skill.id];
+  const usedModelHTML = usedModel
+    ? `<div class="result-model-hint">Généré avec ${MODEL_LABELS[usedModel] || usedModel}</div>`
+    : '';
+
   resultZone.innerHTML = `
     <div class="result-zone" id="result-content-block">
       <div class="result-toolbar">
@@ -3153,6 +3173,7 @@ function renderResult(text, skill) {
           ` : ''}
         </div>
       </div>
+      ${usedModelHTML}
       ${m2Banner}
       <div class="result-body" id="result-body">
         ${marked.parse(text)}
