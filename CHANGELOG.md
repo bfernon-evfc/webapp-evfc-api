@@ -8,6 +8,17 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 16 juin 2026 — Rectificatif mesure M0 — Mis à jour avec Claude
+
+### 1. Correction des valeurs mesurées M0 (distinctes d'INTRO)
+
+- M0 avait été aligné par erreur sur les valeurs d'INTRO (2656 + 10079, temp 0.7) ; mesure réelle : 2194 + 4904 tokens, temp 0.5
+- `DEFAULT_TEMPERATURE_BY_MODULE.m0` : `0.7` → `0.5`
+- `DEFAULT_MAX_TOKENS_BY_MODULE.m0` : `12000` → `8000` (marge suffisante au-dessus des 4904 tokens de sortie mesurés)
+- Mise à jour du tableau "Utilisation des tokens" du README
+
+---
+
 ## Session 16 juin 2026 — Nouvelle mesure M2 et alerte sur "Pas de limite" — Mis à jour avec Claude
 
 ### 1. Recalibrage M2 d'après une nouvelle mesure (1829 + 32900 tokens, temp=0.5, Haiku 4.5)

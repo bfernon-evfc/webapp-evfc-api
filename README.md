@@ -141,7 +141,7 @@ Repères de consommation de tokens mesurés par le développeur lors de tests de
 | Module | Tokens d'entrée | Tokens de sortie | Température testée | Modèle utilisé |
 |--------|------------------|-------------------|---------------------|-----------------|
 | INTRO | 2 656 | 10 079 | 0.7 | Sonnet 4.6 |
-| M0 | 2 656 | 10 079 | 0.7 | Sonnet 4.6 |
+| M0 | 2 194 | 4 904 | 0.5 | Sonnet 4.6 |
 | M1 | 1 610 | 8 046 | 0.5 | Sonnet 4.6 |
 | M2 | 1 829 | 32 900 | 0.5 | Haiku 4.5 |
 | M3 | 2 085 | 12 727 | 0.2 | Sonnet 4.6 |

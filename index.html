@@ -1834,10 +1834,10 @@ const MODEL_MAX_OUTPUT_TOKENS = {
 };
 const TOKEN_PRESETS = [6000, 8000, 12000, 18000, 24000, 36000];
 // Valeurs ajustées d'après des tests de génération réels (tokens de sortie mesurés + marge) :
-// INTRO/M0 ~10079, M1 ~8046, M3 ~12727, M4 ~5799, M5 ~5401, M6 ~5224, M2 ~32900 tokens de sortie.
+// INTRO ~10079, M0 ~4904, M1 ~8046, M3 ~12727, M4 ~5799, M5 ~5401, M6 ~5224, M2 ~32900 tokens de sortie.
 const DEFAULT_MAX_TOKENS_BY_MODULE = {
   intro: 12000,
-  m0: 12000,
+  m0: 8000,
   m1: 12000,
   m2: 36000,
   m3: 18000,
@@ -1855,7 +1855,7 @@ const TEMPERATURE_PRESETS = [
 // Températures recommandées d'après les tests de génération réels par module.
 const DEFAULT_TEMPERATURE_BY_MODULE = {
   intro: 0.7,
-  m0: 0.7,
+  m0: 0.5,
   m1: 0.5,
   m2: 0.5,
   m3: 0.2,
