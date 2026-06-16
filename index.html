@@ -501,19 +501,21 @@
 
   .generation-controls {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) auto;
+    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
     gap: 12px;
     align-items: end;
     margin-bottom: 12px;
   }
 
-  .token-control {
+  .token-control,
+  .temperature-control {
     display: flex;
     flex-direction: column;
     gap: 5px;
   }
 
-  .token-control label {
+  .token-control label,
+  .temperature-control label {
     font-size: 12px;
     font-weight: 700;
     color: var(--text-muted);
@@ -1787,6 +1789,7 @@ const STORAGE_KEYS = {
   model: 'evfc_model',
   resultCache: 'evfc_result_cache',
   maxTokensByModule: 'evfc_max_tokens_by_module',
+  temperatureByModule: 'evfc_temperature_by_module',
   sidebarCollapsed: 'sidebarCollapsed',
 };
 
@@ -1826,6 +1829,23 @@ const DEFAULT_MAX_TOKENS_BY_MODULE = {
   m5: 6000,
   m6: 4000,
   m7: 8000,
+};
+const TEMPERATURE_PRESETS = [
+  { value: 0.2, label: '0.2 — cadré' },
+  { value: 0.5, label: '0.5 — équilibré' },
+  { value: 0.7, label: '0.7 — créatif' },
+  { value: 1, label: '1.0 — exploratoire' },
+];
+const DEFAULT_TEMPERATURE_BY_MODULE = {
+  intro: 0.7,
+  m0: 0.4,
+  m1: 0.5,
+  m2: 0.7,
+  m3: 0.3,
+  m4: 0.8,
+  m5: 0.3,
+  m6: 0.5,
+  m7: 0.3,
 };
 
 function safeGetLocalStorage(key, fallback = '') {
@@ -2129,6 +2149,7 @@ let navHistory = [];      // stack of skill ids visited
 let activeChain = [];     // current chain being navigated
 let resultCache = {};     // { skillId: lastGeneratedText }
 let maxTokensByModule = parseStoredJson(STORAGE_KEYS.maxTokensByModule, {});
+let temperatureByModule = parseStoredJson(STORAGE_KEYS.temperatureByModule, {});
 
 // ─────────────────────────────────────────────
 // THEME
@@ -2431,6 +2452,10 @@ function renderSkillPanel() {
   const tokenOptionsHTML = TOKEN_PRESETS.map(value =>
     `<option value="${value}" ${value === selectedMaxTokens ? 'selected' : ''}>${value.toLocaleString('fr-FR')} tokens</option>`
   ).join('');
+  const selectedTemperature = getTemperatureForSkill(skill.id);
+  const temperatureOptionsHTML = TEMPERATURE_PRESETS.map(p =>
+    `<option value="${p.value}" ${p.value === selectedTemperature ? 'selected' : ''}>${p.label}</option>`
+  ).join('');
 
   // ── M5 : bloc contextuel M4 ──
   const hasCachedM4 = !!resultCache['m4'];
@@ -2582,6 +2607,13 @@ function renderSkillPanel() {
         </select>
         <span class="input-hint">Augmente cette valeur pour les scénarios longs, bibliothèques complètes ou exports techniques.</span>
       </div>
+      <div class="temperature-control">
+        <label for="field_temperature">Créativité du modèle</label>
+        <select id="field_temperature" onchange="setTemperatureForCurrentSkill(this.value)">
+          ${temperatureOptionsHTML}
+        </select>
+        <span class="input-hint">Baisse-la pour des sorties strictes, augmente-la pour des variantes plus créatives.</span>
+      </div>
       <button class="btn-copy-prompt" onclick="copyPromptBeforeGeneration()">📋 Copier le prompt</button>
     </div>
 
@@ -2715,6 +2747,24 @@ function setMaxTokensForCurrentSkill(value) {
   );
 }
 
+function getTemperatureForSkill(skillId) {
+  const stored = Number(temperatureByModule[skillId]);
+  if (TEMPERATURE_PRESETS.some(p => p.value === stored)) return stored;
+  return DEFAULT_TEMPERATURE_BY_MODULE[skillId] ?? 0.5;
+}
+
+function setTemperatureForCurrentSkill(value) {
+  if (!currentSkill) return;
+  const parsed = Number(value);
+  if (!TEMPERATURE_PRESETS.some(p => p.value === parsed)) return;
+  temperatureByModule[currentSkill.id] = parsed;
+  safeSetLocalStorage(
+    STORAGE_KEYS.temperatureByModule,
+    JSON.stringify(temperatureByModule),
+    'Préférence de créativité non enregistrée.'
+  );
+}
+
 function collectSkillInputs(skill, markInvalid = true) {
   const inputs = {};
   let valid = true;
@@ -2770,6 +2820,9 @@ function buildPromptPreview(skill, inputs) {
     '',
     '## Longueur maximale',
     `${getMaxTokensForSkill(skill.id)} tokens`,
+    '',
+    '## Créativité',
+    `temperature ${getTemperatureForSkill(skill.id)}`,
     '',
     '## System prompt',
     buildSystemPrompt(skill),
@@ -2943,6 +2996,7 @@ async function generate() {
   const userPrompt = buildUserPrompt(skill, inputs);
   const systemPrompt = buildSystemPrompt(skill);
   const maxTokens = getMaxTokensForSkill(skill.id);
+  const temperature = getTemperatureForSkill(skill.id);
 
   btn.classList.add('loading');
   btn.disabled = true;
@@ -2976,6 +3030,7 @@ async function generate() {
       body: JSON.stringify({
         model: selectedModel,
         max_tokens: maxTokens,
+        temperature,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
@@ -3091,6 +3146,7 @@ function renderResult(text, skill) {
           <button class="btn-action copy" onclick="copyResult()">📋 Copier</button>
           <button class="btn-action pdf" onclick="exportPDF()">📄 PDF</button>
           <button class="btn-action docx" onclick="exportDOCX()">📝 DOCX</button>
+          <button class="btn-action docx" onclick="showCombinedDocxModal()">🧩 DOCX combiné</button>
           ${isM5 ? `
           <button class="btn-action forms" onclick="showFormsModal('formateur')" title="Générer le script Apps Script pour la grille formateur">🟦 Forms Formateur</button>
           <button class="btn-action forms" onclick="showFormsModal('autoeval')" title="Générer le script Apps Script pour la grille auto-évaluation">🟩 Forms Auto-éval</button>
@@ -3144,6 +3200,332 @@ function copyResult() {
   navigator.clipboard.writeText(currentResult)
     .then(() => showToast('📋 Copié dans le presse-papiers', 'success'))
     .catch(() => showToast('❌ Impossible de copier', 'error'));
+}
+
+function getCachedResultEntries() {
+  return SKILLS
+    .filter(skill => typeof resultCache[skill.id] === 'string' && resultCache[skill.id].trim())
+    .map(skill => ({ skill, text: resultCache[skill.id] }));
+}
+
+function showCombinedDocxModal() {
+  const entries = getCachedResultEntries();
+  if (entries.length < 2) {
+    showToast('⚠️ Génère au moins deux livrables pour créer un DOCX combiné', 'error');
+    return;
+  }
+
+  document.getElementById('combined-docx-modal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'combined-docx-modal';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:720px">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🧩 Export DOCX combiné</span>
+          <span class="modal-tag">Multi-modules</span>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('combined-docx-modal').remove()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px">
+        <p style="margin-bottom:14px;color:var(--text-muted);font-size:13px">
+          Sélectionne les livrables à assembler dans un seul fichier Word. Chaque module commencera sur une nouvelle section.
+        </p>
+        <div style="display:grid;gap:10px;margin-bottom:18px">
+          ${entries.map(({ skill }, index) => `
+            <label style="
+              display:flex;align-items:flex-start;gap:10px;
+              border:1.5px solid var(--border);border-radius:8px;
+              padding:10px 12px;background:var(--bg-card);cursor:pointer
+            ">
+              <input type="checkbox" class="combined-docx-check" value="${skill.id}" checked onchange="updateCombinedDocxButton()" style="margin-top:3px">
+              <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span class="panel-module-tag" style="background:${skill.color};font-size:11px">${skill.module}</span>
+                <strong style="font-size:13px;color:var(--text)">${styleEVFC(skill.name)}</strong>
+                <span style="font-size:12px;color:var(--text-muted)">Position ${index + 1}</span>
+              </span>
+            </label>
+          `).join('')}
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
+          <button class="btn-apikey-cancel" onclick="document.getElementById('combined-docx-modal').remove()">Annuler</button>
+          <button class="btn-apikey-save" id="combined-docx-export-btn" onclick="exportSelectedCombinedDOCX()">Exporter le DOCX combiné</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  updateCombinedDocxButton();
+}
+
+function updateCombinedDocxButton() {
+  const btn = document.getElementById('combined-docx-export-btn');
+  if (!btn) return;
+  const checked = document.querySelectorAll('.combined-docx-check:checked').length;
+  btn.disabled = checked < 2;
+  btn.style.opacity = checked < 2 ? '0.55' : '1';
+  btn.style.cursor = checked < 2 ? 'not-allowed' : 'pointer';
+}
+
+async function ensureDocxLib() {
+  if (window.docx) return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Impossible de charger docx.js (vérifiez votre connexion)'));
+    document.head.appendChild(s);
+  });
+  if (!window.docx) throw new Error('docx.js non disponible après chargement');
+}
+
+async function exportSelectedCombinedDOCX() {
+  const selectedIds = Array.from(document.querySelectorAll('.combined-docx-check:checked')).map(el => el.value);
+  if (selectedIds.length < 2) {
+    showToast('⚠️ Sélectionne au moins deux livrables', 'error');
+    return;
+  }
+
+  const entries = selectedIds
+    .map(id => {
+      const skill = SKILLS.find(s => s.id === id);
+      const text = resultCache[id];
+      return skill && text ? { skill, text } : null;
+    })
+    .filter(Boolean);
+
+  if (entries.length < 2) {
+    showToast('⚠️ Certains livrables sélectionnés ne sont plus disponibles', 'error');
+    return;
+  }
+
+  showToast('⏳ Export DOCX combiné en cours…');
+
+  try {
+    await ensureDocxLib();
+    await downloadCombinedDocx(entries);
+    document.getElementById('combined-docx-modal')?.remove();
+    showToast('✅ DOCX combiné exporté !', 'success');
+  } catch (err) {
+    showToast(`❌ Erreur DOCX combiné : ${err.message}`, 'error');
+    console.error(err);
+  }
+}
+
+async function downloadCombinedDocx(entries) {
+  const {
+    Document, Packer, Paragraph, TextRun, BorderStyle,
+    Table, TableRow, TableCell, WidthType,
+    ShadingType, Header, Footer, PageNumber, TabStopType, TabStopPosition
+  } = window.docx;
+
+  const NAVY = '002455';
+  const RED = 'F0322C';
+  const BLIGHT = 'E8F0FA';
+  const ALERT = 'FFE8E6';
+  const BORDER = 'D8DEE6';
+  const TEXT = '2B2B2B';
+  const GRAY = '6B7280';
+  const WHITE = 'FFFFFF';
+
+  const cleanDocx = (s) => s
+    ? s.replace(/[\u{1F000}-\u{1FFFF}]/gu, '').replace(/[\u{2600}-\u{27BF}]/gu, '')
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').replace(/—/g, '-').replace(/–/g, '-')
+    : '';
+
+  const inlineRuns = (rawLine, opts = {}) => {
+    const parts = [];
+    const segments = cleanDocx(rawLine)
+      .replace(/\*\*(.*?)\*\*/g, '\x00BOLD\x00$1\x00ENDBOLD\x00')
+      .replace(/`(.*?)`/g, '$1')
+      .split('\x00');
+    let bold = false;
+    segments.forEach(seg => {
+      if (seg === 'BOLD') { bold = true; return; }
+      if (seg === 'ENDBOLD') { bold = false; return; }
+      if (seg) parts.push(new TextRun({ text: seg, bold, font: 'Calibri', ...opts }));
+    });
+    return parts.length ? parts : [new TextRun({ text: cleanDocx(rawLine), font: 'Calibri', ...opts })];
+  };
+
+  const isSeparatorRow = (line) => /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(line.trim());
+  const children = [];
+
+  children.push(new Paragraph({
+    children: [new TextRun({ text: 'Pack FPA - Export combine multi-modules', bold: true, size: 44, color: NAVY, font: 'Calibri' })],
+    spacing: { before: 120, after: 120 },
+    border: { bottom: { style: BorderStyle.THICK, size: 8, color: RED, space: 4 } }
+  }));
+  children.push(new Paragraph({
+    children: [
+      new TextRun({ text: 'Edumediapole - Formateur Augmente EVFC', size: 18, color: GRAY, italics: true, font: 'Calibri' }),
+      new TextRun({ text: '     ', size: 18 }),
+      new TextRun({ text: `Genere le ${new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })}`, size: 18, color: GRAY, italics: true, font: 'Calibri' })
+    ],
+    spacing: { before: 80, after: 360 }
+  }));
+  children.push(new Paragraph({
+    children: [new TextRun({ text: 'Modules inclus', bold: true, size: 24, color: NAVY, font: 'Calibri' })],
+    spacing: { before: 120, after: 120 }
+  }));
+  entries.forEach(({ skill }) => {
+    children.push(new Paragraph({
+      children: [
+        new TextRun({ text: `${cleanDocx(skill.module)} `, bold: true, size: 21, color: RED, font: 'Calibri' }),
+        new TextRun({ text: cleanDocx(skill.name), size: 21, color: TEXT, font: 'Calibri' })
+      ],
+      spacing: { before: 50, after: 50 }
+    }));
+  });
+
+  entries.forEach(({ skill, text }, entryIndex) => {
+    children.push(new Paragraph({
+      pageBreakBefore: entryIndex > 0,
+      children: [new TextRun({ text: `  ${cleanDocx(skill.module)}  `, bold: true, size: 18, color: WHITE, font: 'Calibri' })],
+      shading: { type: ShadingType.CLEAR, fill: RED, color: 'auto' },
+      spacing: { before: 320, after: 100 }
+    }));
+    children.push(new Paragraph({
+      children: [new TextRun({ text: cleanDocx(skill.name), bold: true, size: 42, color: NAVY, font: 'Calibri' })],
+      spacing: { before: 120, after: 240 },
+      border: { bottom: { style: BorderStyle.THICK, size: 8, color: RED, space: 4 } }
+    }));
+
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.startsWith('# ')) {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `  ${cleanDocx(line.replace(/^# /, ''))}`, bold: true, size: 28, color: WHITE, font: 'Calibri' })],
+          shading: { type: ShadingType.CLEAR, fill: NAVY, color: 'auto' },
+          spacing: { before: 400, after: 160 }
+        }));
+      } else if (line.startsWith('## ')) {
+        children.push(new Paragraph({
+          children: inlineRuns(line.replace(/^## /, ''), { size: 26, color: NAVY }),
+          spacing: { before: 320, after: 100 },
+          border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: RED, space: 3 } }
+        }));
+      } else if (line.startsWith('### ')) {
+        children.push(new Paragraph({
+          children: inlineRuns(line.replace(/^### /, ''), { size: 22, color: NAVY, bold: true }),
+          spacing: { before: 220, after: 80 }
+        }));
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: '•  ', size: 21, color: RED, font: 'Calibri' }), ...inlineRuns(line.replace(/^[*-] /, ''), { size: 21, color: TEXT })],
+          spacing: { before: 60, after: 60 },
+          indent: { left: 360 }
+        }));
+      } else if (line.startsWith('> ')) {
+        children.push(new Paragraph({
+          children: inlineRuns(line.replace(/^> /, ''), { size: 20, color: '5C2020', italics: true }),
+          shading: { type: ShadingType.CLEAR, fill: ALERT, color: 'auto' },
+          spacing: { before: 120, after: 120 },
+          indent: { left: 480, right: 240 },
+          border: { left: { style: BorderStyle.THICK, size: 10, color: RED, space: 8 } }
+        }));
+      } else if (line.trim() === '' || line.startsWith('---') || line.startsWith('```')) {
+        children.push(new Paragraph({ text: '', spacing: { after: 80 } }));
+      } else if (line.trim().startsWith('|')) {
+        const tableLines = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) { tableLines.push(lines[i]); i++; }
+        i--;
+        const dataRows = tableLines
+          .filter(l => !isSeparatorRow(l))
+          .map(l => l.split('|').map(c => c.trim()).filter(Boolean))
+          .filter(row => row.length);
+        if (!dataRows.length) continue;
+        const cols = Math.max(...dataRows.map(r => r.length));
+        const colPct = Math.floor(100 / cols);
+        const cellBorders = {
+          top: { style: BorderStyle.SINGLE, size: 2, color: BORDER },
+          bottom: { style: BorderStyle.SINGLE, size: 2, color: BORDER },
+          left: { style: BorderStyle.SINGLE, size: 2, color: BORDER },
+          right: { style: BorderStyle.SINGLE, size: 2, color: BORDER }
+        };
+        children.push(new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: dataRows.map((row, ri) => new TableRow({
+            tableHeader: ri === 0,
+            children: Array.from({ length: cols }, (_, ci) => {
+              const isHeader = ri === 0;
+              const fill = isHeader ? NAVY : (ri % 2 === 0 ? BLIGHT : WHITE);
+              return new TableCell({
+                width: { size: colPct, type: WidthType.PERCENTAGE },
+                shading: { type: ShadingType.CLEAR, fill, color: 'auto' },
+                borders: cellBorders,
+                children: [new Paragraph({
+                  children: inlineRuns(row[ci] || '', { size: 19, color: isHeader ? WHITE : TEXT, bold: isHeader }),
+                  spacing: { before: 60, after: 60 },
+                  indent: { left: 80, right: 80 }
+                })]
+              });
+            })
+          }))
+        }));
+        children.push(new Paragraph({ text: '', spacing: { after: 160 } }));
+      } else if (line.trim()) {
+        children.push(new Paragraph({ children: inlineRuns(line, { size: 21, color: TEXT }), spacing: { before: 60, after: 60 } }));
+      }
+    }
+  });
+
+  const docHeader = new Header({
+    children: [new Paragraph({
+      children: [
+        new TextRun({ text: 'Edumediapole', bold: true, size: 16, color: NAVY, font: 'Calibri' }),
+        new TextRun({ text: '  -  Export combine EVFC', size: 16, color: GRAY, font: 'Calibri' })
+      ],
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: NAVY, space: 4 } },
+      spacing: { after: 120 }
+    })]
+  });
+
+  const docFooter = new Footer({
+    children: [new Paragraph({
+      children: [
+        new TextRun({ text: 'B.FERNON © Edumediapole', size: 16, color: GRAY, font: 'Calibri' }),
+        new TextRun({ text: '\t', size: 16 }),
+        new TextRun({ children: [PageNumber.CURRENT], size: 16, color: GRAY, font: 'Calibri' }),
+        new TextRun({ text: ' / ', size: 16, color: GRAY, font: 'Calibri' }),
+        new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: GRAY, font: 'Calibri' }),
+        new TextRun({ text: '\t', size: 16 }),
+        new TextRun({ text: new Date().toLocaleDateString('fr-FR'), size: 16, color: GRAY, font: 'Calibri' })
+      ],
+      tabStops: [
+        { type: TabStopType.CENTER, position: TabStopPosition.MAX / 2 },
+        { type: TabStopType.RIGHT, position: TabStopPosition.MAX }
+      ],
+      border: { top: { style: BorderStyle.SINGLE, size: 4, color: NAVY, space: 4 } },
+      spacing: { before: 120 }
+    })]
+  });
+
+  const doc = new Document({
+    creator: 'Edumediapole - Formateur Augmente EVFC',
+    title: 'Export combine multi-modules EVFC',
+    description: 'Genere par le Pack FPA Edumediapole',
+    sections: [{
+      properties: { page: { margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } },
+      headers: { default: docHeader },
+      footers: { default: docFooter },
+      children
+    }]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const suffix = entries.map(({ skill }) => skill.module).join('_');
+  a.href = url;
+  a.download = `EVFC_COMBINE_${suffix}_${new Date().toISOString().slice(0,10)}.docx`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ─────────────────────────────────────────────
@@ -4065,13 +4447,14 @@ Indique quel modèle Claude est recommandé pour ce module et pourquoi. Un bouto
 #### Le formulaire de saisie
 Chaque module propose des champs à remplir. Les champs marqués d'un **astérisque rouge \*** sont obligatoires.
 
-#### Le sélecteur de longueur et le bouton « Copier le prompt »
+#### Les paramètres de génération et le bouton « Copier le prompt »
 Juste avant le bouton de génération :
 - **Longueur maximale du livrable** : choisissez parmi 3 000 / 6 000 / 8 000 / 12 000 jetons. Augmentez cette valeur pour les scénarios longs ou les bibliothèques complètes ; réduisez-la pour des livrables courts et rapides.
-- **📋 Copier le prompt** : copie l'intégralité du prompt qui serait envoyé à l'IA (modèle, longueur, cadrage métier, vos champs) — utile pour le tester ailleurs ou le réutiliser sans consommer de jetons.
+- **Créativité du modèle** : choisissez la temperature du module. Une valeur basse cadre davantage la sortie ; une valeur haute favorise les variantes et la créativité.
+- **📋 Copier le prompt** : copie l'intégralité du prompt qui serait envoyé à l'IA (modèle, longueur, créativité, cadrage métier, vos champs) — utile pour le tester ailleurs ou le réutiliser sans consommer de jetons.
 
 #### La zone de résultat
-Apparaît après la génération. Elle contient le livrable Markdown et une barre d'outils : 📋 Copier · 📄 PDF · 📝 DOCX.
+Apparaît après la génération. Elle contient le livrable Markdown et une barre d'outils : 📋 Copier · 📄 PDF · 📝 DOCX · 🧩 DOCX combiné.
 
 #### La bannière de restauration
 Si un livrable a déjà été généré pour ce module, une bannière **« 📄 Un livrable a déjà été généré pour ce module »** apparaît au-dessus du résultat, avec un bouton **Revoir le livrable**. Il est conservé même après fermeture du navigateur (un seul livrable mémorisé par module à la fois).
@@ -4122,6 +4505,7 @@ Bande bleue marine affichant les informations de contact et de version.
 - **📋 Copier** : copie le texte (à coller dans Word, Notion, etc.)
 - **📄 PDF** : télécharge un fichier PDF aux couleurs Édumédiapole
 - **📝 DOCX** : télécharge un fichier Word mis en forme
+- **🧩 DOCX combiné** : assemble plusieurs livrables déjà générés en un seul fichier Word
 
 ---
 
@@ -4184,6 +4568,23 @@ Bande bleue marine affichant les informations de contact et de version.
 
 > Ce réglage est mémorisé **par module** : chaque module garde sa propre préférence de longueur.
 
+### Ajuster la créativité d'un module
+
+1. Repérez le sélecteur **« Créativité du modèle »** au-dessus du bouton ⚡ Générer
+2. Choisissez une valeur basse pour les grilles, QCM ou scripts techniques
+3. Choisissez une valeur plus haute pour les scénarios, études de cas ou variantes pédagogiques
+
+> Ce réglage est mémorisé **par module** : M5 peut rester très cadré pendant que M4 reste plus créatif.
+
+### Exporter plusieurs modules dans un seul DOCX
+
+1. Générez au moins deux livrables, par exemple M1 puis M5
+2. Cliquez sur **🧩 DOCX combiné**
+3. Cochez les modules à assembler
+4. Cliquez sur **Exporter le DOCX combiné**
+
+> L'export combiné utilise les derniers livrables mémorisés par module.
+
 ### Copier le prompt sans générer
 
 1. Remplissez les champs du module comme pour une génération normale
@@ -4204,6 +4605,7 @@ Bande bleue marine affichant les informations de contact et de version.
 | **Clé API** | Code d'accès personnel pour utiliser le service IA Claude (\`sk-ant-…\`) |
 | **Token** | Unité de mesure de l'IA (environ ¾ d'un mot) — chaque génération en consomme des milliers |
 | **max_tokens** | Limite de longueur du livrable généré, réglable par module (3 000 / 6 000 / 8 000 / 12 000) via le sélecteur « Longueur maximale du livrable ». Une valeur trop basse peut couper le résultat avant la fin |
+| **temperature** | Niveau de créativité du modèle, réglable par module. Plus la valeur est basse, plus la sortie est cadrée ; plus elle est haute, plus elle varie |
 | **Markdown** | Format de mise en forme textuelle (titres, listes, tableaux) |
 | **localStorage** | Espace de stockage dans votre navigateur — votre clé API y est enregistrée |
 | **EDC** | Étude De Cas — scénario pédagogique simulé (module INTRO) |

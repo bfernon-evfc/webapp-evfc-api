@@ -43,12 +43,14 @@ M7 intervient en aval pour automatiser l'exploitation ou la distribution des liv
 - **Sélecteur de modèle Claude** dans l'en-tête : Haiku 4.5, Sonnet 4.6 par défaut, Opus 4.8.
 - **Catalogue centralisé des modèles** via `MODEL_IDS` / `MODEL_CATALOG`, utilisé par le sélecteur, l'accueil et les recommandations.
 - **Longueur configurable par module** : choix `max_tokens` parmi 3 000, 6 000, 8 000 ou 12 000 tokens, persisté dans `localStorage`.
-- **Bouton "Copier le prompt"** avant génération : copie le prompt complet, incluant modèle, limite de tokens, system prompt enrichi et message utilisateur.
+- **Créativité configurable par module** : choix `temperature` parmi 0.2, 0.5, 0.7 ou 1.0, persisté dans `localStorage`.
+- **Bouton "Copier le prompt"** avant génération : copie le prompt complet, incluant modèle, limite de tokens, temperature, system prompt enrichi et message utilisateur.
 - **Feedback visible en cas d'échec localStorage** : cache plein, stockage indisponible ou données locales illisibles ne restent plus silencieux.
 - **Enchaînement de modules** : résultats d'un module pré-remplissent automatiquement le suivant (M4 → M5, M1/M0/M2 → M3).
 - **Persistance des livrables** : les résultats générés sont conservés en `localStorage` et restent accessibles lors de la navigation entre modules.
 - **Export PDF** avec en-tête Édumédiapole, tableaux Markdown et pagination.
 - **Export DOCX** via chargement dynamique de `docx.js`, avec styles de titres, tableaux et mise en page Édumédiapole.
+- **Export DOCX combiné multi-modules** : assemble plusieurs livrables mémorisés en un seul fichier Word.
 - **Google Forms** : génération de scripts Apps Script prêts à coller pour les grilles M5.
 - **Navigation chaînée** : fil d'Ariane, rail de chaîne, historique, raccourcis clavier.
 - **Mode clair / sombre**.
@@ -127,6 +129,7 @@ Le contenu des `SKILL.md` module est embarqué dans `index.html` sous forme de t
 | `evfc_model` | Modèle Claude sélectionné |
 | `evfc_result_cache` | Dernier livrable généré par module |
 | `evfc_max_tokens_by_module` | Préférences de longueur par module |
+| `evfc_temperature_by_module` | Préférences de créativité par module |
 | `sidebarCollapsed` | État du panneau latéral |
 
 ---

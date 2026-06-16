@@ -3,9 +3,31 @@
 Toutes les modifications notables de ce projet sont documentées ici.  
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+Convention projet : lorsqu'une session de modifications est réalisée depuis ce projet Codex, ajouter la mention **« Mis à jour avec Codex »** dans le titre de la session.  
+Convention projet : lorsqu'une session de modifications est réalisée depuis ce projet Claude Code, ajouter la mention **« Mis à jour avec Claude »** dans le titre de la session.
+
 ---
 
-## Session 15-16 juin 2026 — Qualité des générations, configuration et injection des skills
+## Session 16 juin 2026 — Temperature par module et export DOCX combiné — Mis à jour avec Codex
+
+### 1. `temperature` configurable par module
+
+- Ajout d'un sélecteur "Créativité du modèle" dans chaque panneau module
+- Valeurs disponibles : 0.2 cadré, 0.5 équilibré, 0.7 créatif, 1.0 exploratoire
+- Persistance par module via `evfc_temperature_by_module`
+- L'appel API Anthropic transmet désormais `temperature` avec `model` et `max_tokens`
+- Le bouton "Copier le prompt" indique la temperature active
+
+### 2. Export DOCX combiné multi-modules
+
+- Ajout d'un bouton `DOCX combiné` dans la barre d'outils du livrable
+- Une modale liste les livrables déjà mémorisés par module et permet de choisir ceux à assembler
+- Le DOCX combiné contient une page de synthèse puis une section par module, avec titres, listes, citations et tableaux Markdown
+- Cas d'usage : regrouper une séquence M1 et une grille M5 dans un seul fichier Word
+
+---
+
+## Session 15-16 juin 2026 — Qualité des générations, configuration et injection des skills — Mis à jour avec Codex
 
 ### 1. Feedback visible en cas d'échec `localStorage`
 
@@ -111,7 +133,7 @@ Relations confirmées dans le dossier `skills` :
 
 ---
 
-## Session 13 juin 2026 — Sélecteur de modèle Claude & guide pédagogique
+## Session 13 juin 2026 — Sélecteur de modèle Claude & guide pédagogique — Mis à jour avec Claude
 
 ### 1. Pied de page application
 
@@ -168,7 +190,7 @@ Section **"Quel modèle Claude choisir ?"** ajoutée après la chaîne de produc
 
 ---
 
-## Session 13 juin 2026 — Corrections & améliorations `index.html`
+## Session 13 juin 2026 — Corrections & améliorations `index.html` — Mis à jour avec Claude
 
 ### 1. Export PDF
 
@@ -285,7 +307,7 @@ Appliqué sur : header statique (variante `.on-dark`), écran d'accueil, panel s
 
 ---
 
-## [2.0.0] — 2026-06-12
+## [2.0.0] — 2026-06-12 — Mis à jour avec Claude
 
 ### Ajouté
 - Application complète **Formateur Augmenté EVFC v2.0** (SPA monofichier)
