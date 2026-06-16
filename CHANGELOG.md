@@ -5,6 +5,112 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## Session 15-16 juin 2026 — Qualité des générations, configuration et injection des skills
+
+### 1. Feedback visible en cas d'échec `localStorage`
+
+- Ajout des helpers `safeGetLocalStorage()`, `safeSetLocalStorage()`, `safeRemoveLocalStorage()` et `parseStoredJson()`
+- Les erreurs de stockage ne sont plus silencieuses : un toast explicite prévient l'utilisateur si le cache est plein, indisponible ou illisible
+- Application aux préférences de modèle, clé API, cache des livrables, état du panneau latéral et préférences `max_tokens`
+- Message spécifique si le livrable reste visible mais ne peut pas être restauré au prochain lancement
+
+---
+
+### 2. `max_tokens` configurable par module
+
+- Ajout de `TOKEN_PRESETS = [3000, 6000, 8000, 12000]`
+- Ajout de `DEFAULT_MAX_TOKENS_BY_MODULE` avec valeurs adaptées aux modules courts ou longs
+- Nouveau sélecteur "Longueur maximale du livrable" dans chaque panneau module
+- Persistance par module via `evfc_max_tokens_by_module`
+- L'appel API Anthropic utilise désormais `max_tokens: maxTokens` au lieu de la valeur fixe `6000`
+
+---
+
+### 3. Bouton "Copier le prompt" avant génération
+
+- Ajout d'un bouton `📋 Copier le prompt` avant le bouton de génération IA
+- Le prompt copié contient :
+  - module et nom du livrable ;
+  - modèle Claude sélectionné ;
+  - limite `max_tokens` active ;
+  - prompt système complet ;
+  - message utilisateur construit depuis les champs du formulaire
+- Validation des champs obligatoires avant copie, avec feedback utilisateur si un champ requis manque
+
+---
+
+### 4. Centralisation des modèles Claude
+
+- Ajout de `MODEL_IDS` comme source unique des IDs API
+- Ajout de `MODEL_CATALOG` pour les libellés, descriptions courtes, couleurs et modèle par défaut
+- Génération dynamique du `<select id="model-select">` depuis `MODEL_CATALOG`
+- Les cartes de l'écran d'accueil et les bandeaux de recommandation utilisent les mêmes constantes
+- Conservation de `MODEL_COLORS` et `MODEL_LABELS` sous forme dérivée pour compatibilité avec le reste du code
+
+---
+
+### 5. Premier découpage logique sans build
+
+- Ajout d'une zone `APP CONFIG — premier découpage logique sans build`
+- Regroupement des constantes structurantes :
+  - `STORAGE_KEYS`
+  - `API_CONFIG`
+  - `MODEL_IDS`
+  - `MODEL_CATALOG`
+  - `TOKEN_PRESETS`
+  - `DEFAULT_MAX_TOKENS_BY_MODULE`
+- L'application reste un fichier `index.html` autonome, ouvrable directement dans le navigateur
+
+---
+
+### 6. Analyse et alignement des relations Module EVFC ↔ skill
+
+Relations confirmées dans le dossier `skills` :
+
+| Module | Skill réel déclaré dans `SKILL.md` |
+|---|---|
+| INTRO | `simulateur-edc-evfc` |
+| M0 | `progression-pedagogique-evfc` |
+| M1 | `evfc-sequence-designer` |
+| M2 | `ai-training-designer` |
+| M3 | `qcm-evfc-validator` |
+| M4 | `evfc-faire-scenario-generator` |
+| M5 | `grilles-criteriees` |
+| M6 | `era-loop-coach` |
+| M7 | `n8n-automatisation-pedagogique` |
+
+- Correction de l'affichage des badges de livrable : ils utilisent maintenant le vrai `name:` du `SKILL.md` au lieu du nom de dossier préfixé module
+- Exemple : M1 affiche `evfc-sequence-designer`, M7 affiche `n8n-automatisation-pedagogique`
+
+---
+
+### 7. Injection du skill dans le prompt système Anthropic
+
+- Ajout de la table embarquée `EVFC_MODULE_SKILLS`
+- Chaque entrée contient :
+  - nom réel du skill ;
+  - titre ;
+  - dossier source ;
+  - contenu complet du `SKILL.md`
+- Ajout de `getSkillContextForModule(skillId)`
+- Ajout de `buildSystemPrompt(skill)`
+- Le `system` envoyé à Anthropic combine désormais :
+  - le `systemPrompt` court du module ;
+  - le nom du skill EVFC appliqué ;
+  - le dossier source ;
+  - les instructions complètes du `SKILL.md`
+- Le bouton "Copier le prompt" utilise aussi `buildSystemPrompt()` afin que l'utilisateur voie exactement le cadrage enrichi envoyé au modèle
+
+---
+
+### 8. Vérifications
+
+- Vérification syntaxique des scripts inline de `index.html` avec Node : `OK: 4 inline script(s) parsed`
+- Vérification de présence des 9 skills embarqués dans `EVFC_MODULE_SKILLS`
+- Contrôle visuel via navigateur intégré non réalisé : blocage de permission système hors dossier projet (`AppData`)
+
+---
+
 ## Session 13 juin 2026 — Sélecteur de modèle Claude & guide pédagogique
 
 ### 1. Pied de page application

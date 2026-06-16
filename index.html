@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -498,6 +498,57 @@
   .btn-generate.loading .btn-text { display: none; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  .generation-controls {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 12px;
+  }
+
+  .token-control {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .token-control label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .btn-copy-prompt {
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 9px;
+    border: 1.5px solid var(--navy);
+    background: var(--bg-card);
+    color: var(--navy);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-copy-prompt:hover {
+    background: var(--navy);
+    color: white;
+  }
+
+  [data-theme="dark"] .btn-copy-prompt {
+    border-color: #7eb3f7;
+    color: #7eb3f7;
+  }
+
+  [data-theme="dark"] .btn-copy-prompt:hover {
+    background: #7eb3f7;
+    color: #0d1117;
+  }
 
   /* RESTORE BANNER */
   .restore-banner {
@@ -1647,6 +1698,8 @@
     .panel-title { font-size: 18px; }
     .nav-bar { padding: 8px 12px; }
     .chain-rail { display: none; }
+    .generation-controls { grid-template-columns: 1fr; }
+    .btn-copy-prompt { width: 100%; }
   }
 </style>
 </head>
@@ -1663,11 +1716,7 @@
   </div>
   <div class="header-actions">
     <span class="version-badge">v2.0</span>
-    <select class="model-select" id="model-select" onchange="setModel(this.value)" title="Modèle Claude">
-      <option value="claude-haiku-4-5">Haiku 4.5 — rapide</option>
-      <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — équilibré</option>
-      <option value="claude-opus-4-8">Opus 4.8 — puissant</option>
-    </select>
+    <select class="model-select" id="model-select" onchange="setModelAndUI(this.value)" title="Modèle Claude"></select>
     <button class="key-status" id="key-status-btn" onclick="showApiKeyModal()" title="Configurer ta clé API Anthropic">
       <span class="key-status-dot missing" id="key-status-dot"></span>
       <span id="key-status-label">Clé API</span>
@@ -1731,29 +1780,123 @@
 // DATA — SKILLS DEFINITION
 // ─────────────────────────────────────────────
 // ─────────────────────────────────────────────
-// MODEL RECOMMENDATIONS PER SKILL
+// APP CONFIG — premier découpage logique sans build
 // ─────────────────────────────────────────────
-const MODEL_COLORS = {
-  'claude-haiku-4-5':  '#7c3aed',
-  'claude-sonnet-4-6': '#0284c7',
-  'claude-opus-4-8':   '#b45309',
-};
-const MODEL_LABELS = {
-  'claude-haiku-4-5':  'Haiku 4.5',
-  'claude-sonnet-4-6': 'Sonnet 4.6',
-  'claude-opus-4-8':   'Opus 4.8',
+const STORAGE_KEYS = {
+  apiKey: 'evfc_anthropic_api_key',
+  model: 'evfc_model',
+  resultCache: 'evfc_result_cache',
+  maxTokensByModule: 'evfc_max_tokens_by_module',
+  sidebarCollapsed: 'sidebarCollapsed',
 };
 
+const API_CONFIG = {
+  endpoint: 'https://api.anthropic.com/v1/messages',
+  anthropicVersion: '2023-06-01',
+};
+
+const MODEL_IDS = {
+  haiku45: 'claude-haiku-4-5',
+  sonnet46: 'claude-sonnet-4-6',
+  opus48: 'claude-opus-4-8',
+};
+
+const MODEL_CATALOG = {
+  [MODEL_IDS.haiku45]:  { label: 'Haiku 4.5',  short: 'rapide',    color: '#7c3aed' },
+  [MODEL_IDS.sonnet46]: { label: 'Sonnet 4.6', short: 'équilibré', color: '#0284c7', default: true },
+  [MODEL_IDS.opus48]:   { label: 'Opus 4.8',   short: 'puissant',  color: '#b45309' },
+};
+
+const MODEL_COLORS = Object.fromEntries(
+  Object.entries(MODEL_CATALOG).map(([id, model]) => [id, model.color])
+);
+const MODEL_LABELS = Object.fromEntries(
+  Object.entries(MODEL_CATALOG).map(([id, model]) => [id, model.label])
+);
+
+const DEFAULT_MODEL_ID = Object.keys(MODEL_CATALOG).find(id => MODEL_CATALOG[id].default) || MODEL_IDS.sonnet46;
+const TOKEN_PRESETS = [3000, 6000, 8000, 12000];
+const DEFAULT_MAX_TOKENS_BY_MODULE = {
+  intro: 6000,
+  m0: 6000,
+  m1: 6000,
+  m2: 8000,
+  m3: 6000,
+  m4: 8000,
+  m5: 6000,
+  m6: 4000,
+  m7: 8000,
+};
+
+function safeGetLocalStorage(key, fallback = '') {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch (e) {
+    showStorageWarning('Lecture impossible du stockage local. Les préférences ne seront pas restaurées.');
+    return fallback;
+  }
+}
+
+function safeSetLocalStorage(key, value, successMessage = '') {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    showStorageWarning(successMessage || 'Stockage local saturé ou indisponible. La donnée n’a pas été enregistrée.');
+    return false;
+  }
+}
+
+function safeRemoveLocalStorage(key) {
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch (e) {
+    showStorageWarning('Impossible de modifier le stockage local du navigateur.');
+    return false;
+  }
+}
+
+function showStorageWarning(message) {
+  showToast(`⚠️ ${message}`, 'error');
+}
+
+function parseStoredJson(key, fallback) {
+  const raw = safeGetLocalStorage(key, '');
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    showStorageWarning('Donnée locale illisible. Elle sera ignorée pour cette session.');
+    return fallback;
+  }
+}
+
+function getModelDescription(modelId) {
+  if (modelId === MODEL_IDS.haiku45) {
+    return 'Rapide et économique. Idéal pour les sorties structurées et répétitives (grilles, fiches, bibliothèques de prompts).';
+  }
+  if (modelId === MODEL_IDS.sonnet46) {
+    return 'Équilibré qualité / vitesse / coût. Recommandé pour la majorité des modules EVFC : génération de code, séquences complexes, scénarios.';
+  }
+  if (modelId === MODEL_IDS.opus48) {
+    return 'Le plus puissant. Disponible mais <strong>non recommandé</strong> par le développeur : coût élevé sans gain significatif sur ces tâches pédagogiques.';
+  }
+  return '';
+}
+
+
+const EVFC_MODULE_SKILLS = {"intro":{"name":"simulateur-edc-evfc","title":"Simulateur EDC EVFC","folder":"INTRO-simulateur-edc-evfc","content":"---\nname: simulateur-edc-evfc\ndescription: \u003e\n  Génère des études de cas (EDC) annotées pour la prise en main de l\u0027écosystème EVFC par un apprenant FPA. À partir du profil apprenant, du contexte professionnel, des modules et phases EVFC à couvrir, produit un scénario fil rouge étape par étape : énoncé, skill concerné, prompt copy-paste, procédure, bonne pratique, résultat attendu. Si le contexte est incomplet, questionne avant de produire. Déclencher pour : \"crée une étude de cas EVFC\", \"entraîne mes apprenants aux skills\", \"cas pratique FPA\", \"scénario d\u0027entraînement EVFC\", \"mise en situation formateur augmenté\", \"montre-moi les skills EVFC\", \"point d\u0027entrée EVFC débutant\". Couvre : evfc-sequence-designer, evfc-faire-scenario-generator, grilles-criteriees, era-loop-coach, qcm-evfc-validator, pdf-pedagogique-export. En fin d\u0027EDC, propose la bascule vers prompt-pedagogique-optimizer ou evfc-sequence-designer pour passer en production réelle.\n---\n\n# Simulateur EDC EVFC\n\n## Mission\n\nProduire une étude de cas (EDC) pédagogique complète, progressive et directement exploitable pour former des apprenants FPA à l\u0027usage opérationnel de l\u0027écosystème EVFC.\n\nChaque EDC simule une situation professionnelle réelle dans laquelle l\u0027apprenant FPA doit mobiliser un ou plusieurs skills EVFC pour concevoir, animer ou évaluer une séquence de formation.\n\n---\n\n## High-level process\n\n1. Analyser le contexte fourni par l\u0027utilisateur\n2. Si le contexte est incomplet → lancer le protocole de clarification (voir `rules/clarification-protocol.md`)\n3. Construire le persona apprenant et l\u0027environnement professionnel fictif\n4. Sélectionner les skills EVFC à mobiliser selon les phases demandées\n5. Générer les étapes de l\u0027EDC selon la structure standard (voir `ref/edc-template.md`)\n6. Pour chaque étape : énoncé, skill concerné, explication didactique, prompt exemple, procédure, bonne pratique, résultat attendu\n7. Ajouter la chaîne de skills si plusieurs phases sont couvertes\n8. Clôturer avec une synthèse et des pistes d\u0027évaluation de l\u0027EDC\n\n---\n\n## Contexte requis pour générer une EDC\n\nAvant de produire, vérifier que ces éléments sont disponibles :\n\n| Élément | Obligatoire | Par défaut si absent |\n|---|---|---|\n| **Profil persona apprenant FPA** | Oui | Demander — voir protocole clarification |\n| **Secteur / contexte professionnel** | Oui | Demander |\n| **Modules EVFC à mobiliser** | Oui | Demander |\n| **Phase(s) EVFC à développer** | Oui (au moins 1) | Demander |\n| **Objectif de la formation simulée** | Recommandé | Générer une hypothèse réaliste |\n| **Niveau de l\u0027apprenant FPA** | Recommandé | Supposer débutant EVFC |\n| **Durée cible de la séquence simulée** | Optionnel | Par défaut : 1 journée (7h) |\n| **Entreprise fictive fil rouge** | Optionnel | Utiliser NOVA Technology par défaut |\n\nSi plus de 2 éléments obligatoires sont manquants → lancer le protocole de clarification.\nSi 1 élément manquant → faire une hypothèse explicite et continuer.\n\n---\n\n## Écosystème EVFC — Référence skills\n\nLire `ref/evfc-ecosystem-map.md` pour la description complète de chaque skill et ses règles d\u0027usage dans une EDC.\n\n| Skill | Phase EVFC | Rôle dans l\u0027EDC |\n|---|---|---|\n| `evfc-sequence-designer` | Préparer | Conçoit la séquence 4 phases |\n| `evfc-faire-scenario-generator` | Animer | Génère le scénario Faire réaliste |\n| `grilles-criteriees` | Évaluer | Produit la grille d\u0027observation critériée |\n| `qcm-evfc-validator` | Écouter / Voir | Génère les QCM de vérification |\n| `era-loop-coach` | Animer (remédiation) | Gère les blocages apprenants |\n| `pdf-pedagogique-export` | Préparer / Exporter | Produit les livrables PDF |\n\nEnchaînement naturel recommandé :\n```\nevfc-sequence-designer\n  → qcm-evfc-validator (si phases Écouter/Voir à couvrir)\n  → evfc-faire-scenario-generator\n      → grilles-criteriees\n      → [blocage ?] → era-loop-coach\n  → pdf-pedagogique-export\n```\n\n---\n\n## Structure d\u0027une étape EDC\n\nChaque étape de l\u0027EDC suit ce format :\n\n```\n### 🔵 ÉTAPE N — [Titre de l\u0027étape]\n**Skill :** `nom-du-skill`\n\n#### Contexte de la situation\n[Ce que l\u0027apprenant FPA doit faire dans la situation simulée]\n\n#### Explication didactique\n[Pourquoi ce skill, quel concept pédagogique il mobilise, \nquel piège formateur il permet d\u0027éviter]\n\n#### Prompt exemple\n[Prompt copy-paste ready, calibré pour le contexte de l\u0027EDC]\n\n#### Procédure\n[Étapes d\u0027usage du skill — ce que fait Claude, ce que fait l\u0027apprenant]\n\n#### Bonne pratique\n[1 conseil terrain, 1 erreur fréquente à éviter]\n\n#### Résultat attendu\n[Description précise de l\u0027output — format, contenu, utilité]\n```\n\n---\n\n## Modes de génération\n\nLe skill adapte le niveau de détail selon la demande :\n\n| Mode | Déclencheur | Description |\n|---|---|---|\n| **EDC complète** | Défaut | Toutes les étapes de la chaîne couverte, synthèse finale |\n| **EDC partielle** | \"seulement la phase Faire\", \"juste l\u0027évaluation\" | 1 à 2 étapes ciblées |\n| **EDC lot progressif** | \"3 niveaux de difficulté\", \"plusieurs scénarios\" | 3 variantes (débutant / intermédiaire / avancé) |\n| **EDC certificative** | \"pour une évaluation FPA\", \"cas certificatif\" | Format épreuve avec critères de réussite apprenants |\n\n---\n\n## Règles de production\n\n- Ancrer systématiquement l\u0027EDC dans un contexte professionnel crédible et nommé\n- Utiliser NOVA Technology comme entreprise fictive fil rouge si aucun contexte n\u0027est fourni\n- Le persona apprenant FPA doit avoir un prénom, un âge, un métier d\u0027origine et un niveau EVFC\n- Chaque prompt exemple doit être copy-paste ready — aucun placeholder vague type \"[insérer ici]\"\n- Les explications didactiques ciblent un niveau de lecture lycée professionnel\n- Mentionner systématiquement le skill dans sa notation exacte : `nom-du-skill`\n- Terminer chaque EDC par la chaîne de skills utilisée (diagramme textuel)\n- Si un blocage apprenant est inclus dans la situation → toujours proposer l\u0027étape `era-loop-coach`\n\n---\n\n## Fichiers de référence\n\n- `rules/clarification-protocol.md` — questions à poser si contexte insuffisant\n- `rules/output-contract.md` — format de sortie obligatoire\n- `ref/evfc-ecosystem-map.md` — description détaillée de chaque skill EVFC\n- `ref/edc-template.md` — gabarit complet d\u0027une EDC\n- `ref/persona-templates.md` — exemples de personas apprenants FPA réutilisables\n- `examples/edc-maintenance-automate.md` — EDC complète de référence (situation 3)\n- `examples/edc-rh-entretien.md` — EDC partielle RH (2 étapes)\n\n---\n\n## Validation finale\n\nAvant de livrer, vérifier :\n\n- [ ] Le persona apprenant FPA est nommé et contextualisé\n- [ ] Chaque étape comporte : contexte, explication didactique, prompt, procédure, bonne pratique, résultat attendu\n- [ ] Les noms de skills sont exacts et en notation backtick\n- [ ] Les prompts exemples sont copy-paste ready\n- [ ] La chaîne de skills est représentée en fin de document\n- [ ] Le niveau de lecture est adapté à un apprenant FPA en formation\n"},"m0":{"name":"progression-pedagogique-evfc","title":"Progression pédagogique EVFC","folder":"M0-progression-pedagogique-evfc","content":"---\nname: progression-pedagogique-evfc\ndescription: \"Conçoit, structure ou améliore des progressions pédagogiques complètes pour la formation professionnelle d\u0027adultes à partir d\u0027un référentiel métier, bloc de compétences, titre professionnel ou objectifs réglementaires. Produit séances EVFC avec objectifs observables, évaluations, indicateurs de maîtrise et remédiations exploitables. Déclencher pour : \\\"crée une progression\\\", \\\"structure ce référentiel\\\", \\\"découpe en séances\\\", \\\"aligne compétences et objectifs\\\", \\\"progression EVFC\\\", \\\"améliore ce plan\\\", \\\"séquence cette formation\\\", \\\"couvre ce référentiel en X heures\\\". Déclencher aussi dès que l\u0027utilisateur fournit un référentiel ou bloc de compétences et veut en faire quelque chose pédagogiquement. NE PAS déclencher pour un scénario Faire isolé (→ evfc-faire-scenario-generator) ou une séquence unique (→ evfc-sequence-designer).\"\n---\n\n# Progression pédagogique EVFC\n\n## High-level process\n1. Identifier le mode de travail : cadrage rapide, production complète ou amélioration d\u0027une progression existante.\n2. Extraire les éléments de cadrage disponibles : public, niveau, métier, compétences, durée, modalité, contraintes, livrables.\n3. Analyser le référentiel fourni et distinguer les compétences officielles des ajouts pédagogiques éventuels.\n4. Construire une architecture pédagogique réaliste, alignée métier et structurée selon EVFC.\n5. Produire une sortie directement exploitable avec objectifs observables, évaluations, indicateurs de maîtrise, remédiations et synthèse de couverture.\n6. Signaler explicitement les hypothèses, zones ambiguës et limites de couverture.\n\n## Instructions\n- Commence par analyser la demande avant de produire.\n- Ne propose aucune activité sans lien clair avec une compétence, une activité métier ou un objectif opérationnel.\n- Utilise systématiquement la logique EVFC pour chaque module ou séance.\n- Rédige pour un public adulte en formation professionnelle avec un style clair, direct et terrain.\n- Utilise des verbes observables. Évite les objectifs vagues.\n- Si une donnée essentielle manque, pose seulement les questions indispensables. Sinon, formule une hypothèse explicite et avance.\n- Si le référentiel est long, commence par extraire les compétences puis regroupe-les en blocs cohérents avant de dérouler la progression.\n- Distingue toujours les compétences issues du référentiel des ajouts pédagogiques.\n- Par défaut, produis la structure complète de progression attendue dans `ref/response-templates.md`.\n- Avant de finaliser, vérifie la cohérence entre compétence, objectif, situation professionnelle, activité apprenant, évaluation et indicateur de maîtrise.\n\n## Reference files\n- `rules/conversation-policy.md` : règles de conduite selon le niveau de cadrage.\n- `rules/output-contract.md` : format de sortie obligatoire et structure attendue.\n- `rules/referential-handling.md` : gestion du référentiel, couverture et hypothèses.\n- `ref/evfc-framework.md` : cadre opérationnel EVFC.\n- `ref/default-questions.md` : questions minimales de cadrage.\n- `ref/quality-checklist.md` : contrôle final qualité.\n- `ref/response-templates.md` : gabarits de sortie par mode.\n- `docs/usage-guide.md` : guide d\u0027utilisation.\n- `docs/maintenance-notes.md` : maintenance et évolution du skill.\n\n## Handoff écosystème EVFC\n\nCe skill opère au **niveau macro** (référentiel → architecture globale → N séances blueprint).\nChaque séance identifiée peut être développée en livrable formateur complet via les skills suivants :\n\n```\nprogression-pedagogique-evfc      ← CE SKILL (niveau macro : cadrage + architecture)\n        ↓  (1 séance = 1 compétence → input pour la chaîne micro)\nprompt-pedagogique-optimizer      ← optimise le prompt de conception si besoin\n        ↓\nevfc-sequence-designer            ← développe chaque séance blueprint en livrable complet\n        ↓\nevfc-faire-scenario-generator     ← génère le scénario Faire opérationnel\n        ↓\ngrilles-criteriees                ← produit la grille d\u0027évaluation critériée\n        ↓\nera-loop-coach                    ← gère les blocages et remédiations apprenant\n```\n\n**Règle de délimitation :**\n- `progression-pedagogique-evfc` → 1 référentiel → N modules → planning global (séances au niveau blueprint)\n- `evfc-sequence-designer` → 1 compétence → 1 séance complète prête à l\u0027emploi (niveau exécution)\n\nAprès livraison d\u0027une progression, suggérer `evfc-sequence-designer` pour développer chaque séance.\n\n## Validation\nEn fin de réponse, ajoute un mini-bilan opérationnel avec :\n- mode utilisé ;\n- hypothèses retenues ;\n- compétences couvertes ou à confirmer ;\n- point de vigilance principal.\n"},"m1":{"name":"evfc-sequence-designer","title":"EVFC Sequence Designer","folder":"M1-evfc-sequence-designer","content":"---\nname: evfc-sequence-designer\ndescription: Génère des séquences pédagogiques EVFC natives orientées action observable, démonstration pratique et autonomie opérationnelle. À utiliser dès qu\u0027un utilisateur veut créer une formation, un atelier, une séquence pédagogique, un module pratique, une montée en compétence métier ou technique avec validation observable. Déclencher aussi pour toute demande formulée comme \"crée-moi une séquence\", \"construis un atelier pratique\", \"génère un module EVFC\", \"fais une formation orientée action\", \"j\u0027ai besoin d\u0027une séquence sur\", \"transforme cette compétence en atelier\", même sans mention explicite d\u0027EVFC ou de pédagogie.\n---\n\n# EVFC Sequence Designer\n\n## High-level process\n\n1. Identifier la compétence observable cible\n2. Reformuler l\u0027objectif opérationnel\n3. Définir le résultat observable attendu\n4. Construire le \"Faire\" avant tout le reste\n5. Générer les phases : Écouter → Voir → Faire → Consolider\n6. Définir l\u0027évaluation observable\n7. Vérifier la conformité EVFC\n8. Signaler les écarts éventuels\n\n---\n\n## Instructions\n\nToujours produire des séquences :\n- orientées action réelle ;\n- centrées sur la pratique ;\n- validées par démonstration observable ;\n- compatibles avec le modèle EVFC.\n\n**Priorités absolues :**\n- le \"Faire\" domine (45–55% du temps) ;\n- les résultats sont visibles et démontrables ;\n- l\u0027apprenant agit rapidement ;\n- le feedback arrive après tentative.\n\n**Interdictions :**\n- cours magistraux longs ;\n- théorie excessive ;\n- exercices artificiels ;\n- évaluations uniquement théoriques.\n\nToujours :\n- reformuler la compétence sous forme d\u0027action observable ;\n- définir les critères de réussite ;\n- prévoir reproduction autonome ;\n- intégrer consolidation et transfert terrain.\n\nSi la demande est trop abstraite → exiger une compétence observable concrète.\n\n---\n\n## Reference files\n\nLire selon le besoin :\n\n**Règles métier :**\n- `rules/evfc-core-rules.md` — structure obligatoire + répartition cible\n- `rules/output-contract.md` — contrat de sortie et style rédactionnel\n- `rules/pedagogical-forbidden-patterns.md` — patterns interdits\n- `rules/adaptation-policy.md` — niveaux débutant / intermédiaire / avancé\n\n**Références opérationnelles :**\n- `ref/sequence-template.md` — modèle standard à suivre\n- `ref/evaluation-matrix.md` — matrice d\u0027évaluation\n- `ref/observable-objectives-examples.md` — objectifs valides vs invalides\n- `ref/quality-validation-checklist.md` — checklist finale\n\n**Exemples :**\n- `examples/beginner-example.md`\n- `examples/intermediate-example.md`\n- `examples/advanced-example.md`\n\n**Skills complémentaires :**\n- Pour générer des **QCM d\u0027évaluation** cohérents avec les phases Écouter et Voir (quiz CSV → Google Forms) : utiliser `qcm-evfc-validator`\n- Pour générer les cas \"Faire\" (scénarios ultra réalistes, mises en situation, variantes certificatives) : utiliser `evfc-faire-scenario-generator`\n- Pour produire la **grille d\u0027évaluation critériée** du bloc Faire : utiliser `grilles-criteriees`\n\n**Enchaînement naturel :**\n`evfc-sequence-designer` → `qcm-evfc-validator` → `evfc-faire-scenario-generator` → `grilles-criteriees`\n\n**Fournisseur d\u0027inputs :**\nCe skill peut recevoir ses compétences-cibles depuis `progression-pedagogique-evfc` (niveau macro).\nQuand un utilisateur a déjà une progression globale, chaque séance blueprint devient l\u0027input de `evfc-sequence-designer`.\n\n```\nprogression-pedagogique-evfc   ← cadrage référentiel + architecture N séances\n        ↓  (1 séance = 1 compétence)\nevfc-sequence-designer         ← développe chaque séance en livrable complet\n```\n\n---\n\n## Validation finale\n\nAvant toute sortie, vérifier :\n- [ ] Le Faire est dominant\n- [ ] L\u0027apprenant agit rapidement\n- [ ] Le résultat est observable\n- [ ] L\u0027évaluation est pratique\n- [ ] Le feedback arrive après tentative\n- [ ] Une reproduction autonome existe\n- [ ] Une consolidation existe\n"},"m2":{"name":"ai-training-designer","title":"AI Training Designer","folder":"M2-ai-training-designer","content":"---\nname: ai-training-designer\ndescription: Conçoit des actions de formation complètes en IA générative, prompting, usages professionnels des LLM, automatisation simple et IA agentique. À utiliser dès que l\u0027utilisateur veut créer un programme de formation, un parcours multi-jours, des modules, séquences, activités, supports, évaluations ou une formation complète à partir d\u0027un seul brief. Déclencher aussi pour toute demande formulée comme \"crée-moi une formation\", \"construis un programme\", \"génère un parcours\", \"prépare des modules\", \"fais une action de formation\", \"j\u0027ai besoin d\u0027une formation sur\", \"adapte cette formation pour\", \"génère une fiche formateur\", \"produis un déroulé\", même sans mention explicite d\u0027IA ou de pédagogie.\n---\n\n# AI Training Designer\n\n## Processus général\n\n1. Identifier le besoin de formation\n2. Déterminer le public, la durée, le niveau et le contexte métier\n3. Choisir une architecture pédagogique adaptée → `/ref/training-architectures.md`\n4. Assembler les modules réutilisables → `/ref/module-library.md`\n5. Générer les séquences selon la méthode EVFC → `/rules/pedagogical-constraints.md`\n6. Produire les activités, TP, livrables et évaluations → `/ref/activity-library.md`, `/ref/evaluation-framework.md`\n7. Adapter au public si besoin → `/ref/public-adaptation-matrix.md`\n8. Appliquer les garde-fous et la checklist → `/ref/risk-guardrails.md`\n9. Vérifier cohérence, progressivité, charge cognitive et risques IA\n\n## Instructions permanentes\n\n- Répondre en français.\n- Produire des contenus directement exploitables par un formateur.\n- Toujours privilégier une logique opérationnelle plutôt qu\u0027un cours théorique.\n- Adapter le niveau à des adultes débutants ayant une base numérique minimale (sauf mention contraire).\n- Utiliser la méthode EVFC : Écouter, Voir, Faire, Consolider.\n- Transformer chaque notion IA en activité ou livrable concret.\n- Intégrer les outils dans des cas d\u0027usage réalistes : ChatGPT, Claude, Gemini, NotebookLM, n8n, Google Drive, Google Docs, Google Sheets, Google Forms, Notion, Obsidian.\n- Signaler clairement les risques : hallucination, confidentialité, dépendance aux outils, automatisation mal contrôlée, surcharge cognitive.\n- Utiliser uniquement des données fictives dans toutes les activités et exemples.\n\n## Mode génération complète en 1 prompt\n\nLorsque l\u0027utilisateur demande une formation complète, un parcours complet, un programme clé en main ou donne un brief même incomplet, appliquer le protocole → `/ref/one-prompt-generation.md`.\n\nSi le brief est exploitable, produire directement une version complète sans multiplier les questions.\n\nSi une information manque, appliquer ces valeurs par défaut :\n- public : adultes débutants avec base numérique minimale ;\n- modalité : présentiel ;\n- format : formation multi-jours ;\n- méthode : alternance théorie courte, démonstration, pratique, consolidation ;\n- livrables : programme, déroulé, activités, supports, évaluations, fiche formateur, feuille de route apprenant.\n\nNe poser une question que si la durée ou le public rend la production impossible.\n\n## Structure de sortie attendue\n\nLire → `/rules/output-contract.md`\n\n## Posture de réponse\n\nLire → `/rules/conversation-policy.md`\n\n## Validation finale\n\nAvant de finaliser, vérifier que :\n- les objectifs sont observables ;\n- les activités sont réalisables en présentiel avec des données fictives ;\n- les outils sont intégrés dans des usages concrets ;\n- les évaluations produisent des preuves ;\n- les risques IA sont traités (lire `/ref/risk-guardrails.md`) ;\n- la charge cognitive reste maîtrisée (max 3 outils nouveaux par jour) ;\n- la checklist 3 phases est incluse si demande de formation complète.\n\n## Reference files\n\n| Fichier | Usage |\n|---|---|\n| `/rules/conversation-policy.md` | Posture de réponse |\n| `/rules/output-contract.md` | Structure de sortie attendue |\n| `/rules/pedagogical-constraints.md` | Contraintes pédagogiques et méthode EVFC |\n| `/ref/module-library.md` | Modules réutilisables M1–M10 |\n| `/ref/templates.md` | Modèles copiables (module, activité, formateur, apprenant, grille éval) |\n| `/ref/activity-library.md` | Activités pratiques A1–A9 (avec erreurs fréquentes) |\n| `/ref/training-architectures.md` | Architectures 2, 3, 5, 10 jours |\n| `/ref/evaluation-framework.md` | Méthode d\u0027évaluation avant/pendant/après |\n| `/ref/industrialization-workflow.md` | Workflow Drive + 12 étapes + n8n + Notion + Obsidian + questionnaire positionnement |\n| `/ref/one-prompt-generation.md` | Protocole génération complète en 1 prompt |\n| `/ref/public-adaptation-matrix.md` | Matrice d\u0027adaptation pour 7 publics différents ← **NOUVEAU** |\n| `/ref/risk-guardrails.md` | 6 risques + garde-fous + checklist 3 phases + texte règles J1 ← **NOUVEAU** |\n| `/docs/usage-guide.md` | Guide d\u0027utilisation et exemples |\n"},"m3":{"name":"qcm-evfc-validator","title":"QCM EVFC Validator","folder":"M3-qcm-evfc-validator","content":"---\nname: qcm-evfc-validator\ndescription: \u003e\n  Génère, valide et structure des QCM au format CSV 5 colonnes pour Google Forms, puis produit le script Google Apps Script complet (buildFormFromSheet) pour créer le formulaire automatiquement depuis Google Sheets. Aligné sur les phases Écouter et Voir de la méthode EVFC. Utiliser ce skill dès qu\u0027un utilisateur demande de créer un questionnaire de vérification des acquis théoriques, un quiz de compréhension, un QCM de pré-Faire, un formulaire Google Forms, un script Apps Script pour Google Forms, ou tout questionnaire issu d\u0027une séquence EVFC. Déclencher aussi pour : crée un QCM pour ma séquence EVFC, génère des questions pour le bloc Écouter, fais un quiz pour valider le Voir, je veux tester la compréhension avant le Faire, génère le CSV pour Google Forms, génère le script Apps Script, crée le formulaire Google Forms, valide mon QCM EVFC, contrôle la cohérence pédagogique de mon QCM, même sans mention explicite de Google Forms ou d\u0027Apps Script.\n---\n\n# QCM EVFC Validator\n\nCe skill génère des QCM CSV 5 colonnes pour Google Forms, valide leur cohérence EVFC, puis produit le script Google Apps Script complet pour générer le formulaire automatiquement depuis Google Sheets.\n\nIl s\u0027insère dans la chaîne pédagogique après `evfc-sequence-designer` et avant le bloc `Faire`.\n\n---\n\n## Contexte EVFC\n\nDans la méthode EVFC :\n- **Écouter** : l\u0027apprenant reçoit les concepts clés. Questions QCM ciblant la **mémorisation** et la **compréhension** (Bloom 1–2). Questions courtes, vocabulaire direct.\n- **Voir** : l\u0027apprenant observe une démonstration. Questions QCM ciblant la **compréhension du modèle** et l\u0027**application attendue** (Bloom 2–3). Questions sur le \"pourquoi\" et le \"comment\".\n\nLes catégories CSV doivent correspondre aux blocs identifiés dans la séquence EVFC fournie.\n\n---\n\n## Format CSV — 5 colonnes\n\n```\nSujet ; Question ; Options ; Réponse Correcte ; Phase EVFC\n```\n\n- **Options** : 5 choix dans une seule cellule — `A) ... B) ... C) ... D) ... E) Je ne sais pas`\n- **Réponse Correcte** : lettre + texte de la bonne réponse (A à D uniquement, jamais E)\n- **Phase EVFC** : `Écouter` ou `Voir` uniquement\n- Voir `ref/csv-format-spec.md` pour le détail complet et les exemples\n\n---\n\n## Processus de production (séquence obligatoire)\n\n```\n1. Récupérer la séquence EVFC (ou objectifs/blocs Écouter/Voir)\n2. Produire le Résumé du formulaire (titre, objectif, tableau sections/types)\n3. Générer le CSV 5 colonnes avec typage Phase EVFC\n4. Exécuter la validation CSV complète (structure + contenu + cohérence EVFC)\n5. Produire le Rapport de validation (✅ Conformités / ⚠️ Erreurs / 📚 EVFC / 🔴 Décision)\n6. Bloquer la génération du script tant que le CSV n\u0027est pas explicitement validé\n7. Après validation explicite → produire le Script Google Apps Script complet (buildFormFromSheet)\n8. Produire le Mode d\u0027emploi + Checklist des vérifications manuelles Google Forms\n```\n\n---\n\n## Instructions\n\n- Toujours travailler en 2 temps : **validation CSV d\u0027abord**, **script ensuite**.\n- Si l\u0027utilisateur demande directement le script sans CSV validé → revenir à l\u0027étape validation.\n- Imposer strictement 5 colonnes : voir `ref/csv-format-spec.md`.\n- La colonne `Phase EVFC` accepte uniquement `Écouter` ou `Voir`.\n- Vérifier la cohérence entre phase EVFC et niveau cognitif des questions : voir `rules/evfc-alignment-policy.md`.\n- Vérifier que les catégories CSV correspondent aux blocs de la séquence EVFC fournie.\n- Adapter le script : titre du formulaire, description, descriptions de sections dans `getSectionDescription()`.\n- Ne jamais utiliser un autre nom de fonction principale que `buildFormFromSheet`.\n- Toujours fournir un script complet, commenté, directement exécutable.\n- Toujours terminer par le Mode d\u0027emploi et la Checklist manuelle.\n\n---\n\n## Reference files\n\n**Règles métier :**\n- `rules/conversation-policy.md` — ordre d\u0027exécution et règles de dialogue\n- `rules/csv-validation-policy.md` — logique de validation CSV (5 colonnes, structure et cohérence EVFC)\n- `rules/script-generation-policy.md` — exigences du script Apps Script + mode d\u0027emploi\n- `rules/output-contract.md` — formats de réponse autorisés et séquence de production\n- `rules/evfc-alignment-policy.md` — règles de cohérence EVFC (phases, Bloom, catégories)\n\n**Références opérationnelles :**\n- `ref/csv-format-spec.md` — format exact du CSV 5 colonnes avec exemples\n- `ref/apps-script-template.md` — gabarit complet du script buildFormFromSheet (à adapter)\n- `ref/validation-checklist.md` — checklist complète incluant vérifications EVFC\n- `ref/implementation-notes.md` — points techniques et limitations Google Forms/Apps Script\n\n**Documentation :**\n- `docs/usage-guide.md` — cas d\u0027usage et flux attendu\n- `docs/maintenance-notes.md` — règles d\u0027évolution et zones sensibles\n\n---\n\n## Enchaînement naturel dans la chaîne EVFC\n\n```\nevfc-sequence-designer → qcm-evfc-validator → evfc-faire-scenario-generator → grilles-criteriees\n```\n\nCe skill intervient entre la conception de la séquence et la construction du scénario Faire.\n\n---\n\n## Validation / feedback\n\nAvant de passer au script, vérifier que l\u0027utilisateur a **explicitement confirmé** que le CSV est validé (structure 5 colonnes + cohérence EVFC). En cas d\u0027erreur, proposer soit une correction ciblée, soit une régénération propre du CSV.\n"},"m4":{"name":"evfc-faire-scenario-generator","title":"EVFC Faire Scenario Generator","folder":"M4-evfc-faire-scenario-generator","content":"---\nname: evfc-faire-scenario-generator\ndescription: \u003e\n  Génère des scénarios pédagogiques \"Faire\" ultra réalistes pour la formation professionnelle à partir d\u0027une compétence métier, d\u0027une tâche opérationnelle ou d\u0027une situation de travail. Utilise ce skill dès qu\u0027il faut transformer une compétence observable en mise en situation concrète, crédible, évaluable et directement exploitable en formation, atelier, évaluation ou parcours EVFC. Déclencher aussi pour : \"crée un scénario Faire\", \"génère une mise en situation\", \"je veux un cas pratique\", \"créé un exercice réaliste\", \"fais une simulation terrain\", \"scénario certificatif\", \"lot de scénarios progressifs\".\n---\n\n# EVFC Faire Scenario Generator\n\n## High-level process\n\n1. Identifier la compétence, le métier, le niveau et le contexte.\n2. Reconstituer un environnement de travail crédible à partir des éléments fournis.\n3. Concevoir une mise en action concrète avec mission, ressources, contraintes et perturbations.\n4. Faire apparaître des décisions, des erreurs probables et un résultat observable.\n5. Produire un scénario directement exploitable, avec critères de réussite, feedback formateur et piste de consolidation.\n6. Si utile, ajouter des variantes : pression, incident, client difficile, collectif, certificatif, progressif.\n\n## Instructions\n\nTu conçois des scénarios \"Faire\" ultra réalistes pour la formation professionnelle dans une logique EVFC.\n\nTravaille toujours à partir d\u0027une compétence observable, d\u0027une tâche métier réelle ou d\u0027un objectif opérationnel concret.\n\nProduis une situation d\u0027action, jamais un exercice théorique. Ancre systématiquement le scénario dans un contexte professionnel crédible, avec ressources, contraintes, tensions, imprévus et résultat attendu.\n\nQuand des informations manquent, fais une hypothèse réaliste minimale et continue. N\u0027interromps pas la production pour demander des précisions sauf si l\u0027absence d\u0027information empêche totalement de distinguer le métier ou la compétence.\n\nAdapte le niveau de difficulté au public visé. Fais apparaître des erreurs probables, des choix à arbitrer, un feedback formateur utile et une piste de transfert ou consolidation.\n\nPar défaut, fournis un scénario complet. Si la demande le suggère, bascule vers une variante courte, immersive, collective, individuelle, certificative ou en lot progressif.\n\nApplique les règles détaillées dans les fichiers de référence avant de rédiger.\n\n## Reference files\n\n- `rules/conversation-policy.md` — politique de cadrage et comportement de réponse\n- `rules/output-contract.md` — structure exacte de sortie\n- `rules/realism-rules.md` — exigences de réalisme terrain\n- `ref/scenario-template.md` — gabarit principal de scénario\n- `ref/evfc-framework.md` — rappel du cadre EVFC\n- `ref/sector-starters.md` — points de départ sectoriels (IT, service client, ESN)\n- `ref/evaluation-grid.md` — grille d\u0027évaluation professionnelle\n- `ref/training-formats.md` — formats d\u0027intégration pédagogique\n- `docs/usage-guide.md` — comment invoquer et ajuster le skill\n- `docs/maintenance-notes.md` — règles de maintenance et d\u0027évolution\n\n## Complémentarité\n\nCe skill génère le **contenu du bloc Faire**.\n\n| Skill | Rôle |\n|---|---|\n| `evfc-sequence-designer` | Construit la séquence complète 4 phases EVFC |\n| `evfc-faire-scenario-generator` ← **ce skill** | Génère le scénario Faire (mise en situation) |\n| `grilles-criteriees` | Produit la grille d\u0027évaluation critériée du Faire |\n\n**Enchaînement naturel :**\n`evfc-sequence-designer` → **`evfc-faire-scenario-generator`** → `grilles-criteriees`\n\nAprès génération d\u0027un scénario Faire, proposer systématiquement :\n\u003e \"Veux-tu que je génère la grille d\u0027évaluation critériée pour ce scénario ?\"\n\n## Validation\n\nAvant de finaliser, vérifier :\n- [ ] action concrète plutôt que théorie\n- [ ] contexte professionnel crédible\n- [ ] présence d\u0027au moins une contrainte réelle\n- [ ] présence d\u0027un élément perturbateur ou d\u0027une tension\n- [ ] résultat observable\n- [ ] feedback et consolidation inclus\n"},"m5":{"name":"grilles-criteriees","title":"Grilles Critériées","folder":"M5-grilles-criteriees","content":"---\nname: grilles-criteriees\ndescription: \u003e\n  Créer, adapter, améliorer ou condenser des grilles d\u0027évaluation professionnelle critériées à partir d\u0027une compétence, d\u0027un scénario Faire, d\u0027un poste ou d\u0027une situation de travail. Utiliser ce skill dès que l\u0027utilisateur demande une grille d\u0027évaluation, des critères observables, des niveaux de maîtrise, un indicateur de validation ou l\u0027amélioration d\u0027une grille existante. Déclencher aussi systématiquement après la génération d\u0027un scénario \"Faire\" (evfc-faire-scenario-generator) ou d\u0027une séquence EVFC (evfc-sequence-designer) lorsqu\u0027une évaluation observable est attendue — même sans demande explicite de grille. Déclencheurs : \"évalue ce scénario\", \"comment je valide le Faire\", \"critères du Faire\", \"grille pour ce cas pratique\", \"indicateurs de réussite\", \"grille critériée\", \"grille d\u0027observation\", \"créer une grille\", \"améliore ma grille\".\n---\n\n# Grilles Critériées\n\n## High-level process\n\n1. Identifier l\u0027objet évalué et le contexte disponible.\n2. Déterminer si la demande porte sur une création, une amélioration, une simplification ou une construction progressive.\n3. Si la demande fait suite à un scénario Faire EVFC : extraire les critères de réussite du scénario comme base de la grille.\n4. Construire une grille fondée sur des dimensions pertinentes et des critères observables.\n5. Définir des niveaux de maîtrise progressifs, par défaut sur 4 niveaux.\n6. Produire un indicateur global de validation clair.\n7. Livrer une sortie directement exploitable, compacte ou détaillée selon la demande.\n\n## Instructions\n\n- Agis comme un expert en ingénierie de l\u0027évaluation professionnelle.\n- Vise des grilles claires, observables, utilisables sur le terrain et faciles à copier-coller.\n- Adapte toujours la grille au contexte fourni : métier, mission, compétence, niveau attendu, public concerné, situation d\u0027évaluation.\n- Privilégie les formulations observables, vérifiables et reliées à des faits.\n- Évite les critères vagues, psychologisants ou non mesurables.\n- Par défaut, utilise 4 niveaux de maîtrise : **Insuffisant**, **Acceptable**, **Maîtrisé**, **Expert**.\n- Si des informations importantes manquent, signale-les brièvement puis produis quand même une version exploitable fondée sur des hypothèses minimales explicites.\n- Ne surcharge pas la réponse avec de longues explications sauf demande méthodologique explicite.\n\n### Mode de traitement\n\n- **Grille post-Faire EVFC** : exploite les critères de réussite, les erreurs probables et le résultat observable du scénario pour construire directement les dimensions et critères. Ne redemande pas les infos déjà présentes dans le scénario.\n- **Grille complète** : contexte, dimensions, critères, niveaux, grille complète, indicateur global, conseils d\u0027utilisation.\n- **Version rapide / synthétique** : grille courte exploitable directement.\n- **Amélioration** : conserve l\u0027intention initiale, rend les critères plus observables, précise les niveaux, renforce la règle de validation.\n- **Construction progressive** : avance étape par étape — objectif, dimensions, critères, niveaux, indicateur global, version finale.\n\n### Règles d\u0027exécution\n\n- Limite le nombre de dimensions à ce qui reste exploitable.\n- Préfère 2 à 4 critères par dimension sauf besoin contraire.\n- Choisis des dimensions génériques ou métier selon le contexte.\n- Assure une progression nette entre les niveaux.\n- Termine chaque grille par une règle de validation simple et compréhensible.\n\n## Complémentarité EVFC\n\nCe skill génère la **grille d\u0027évaluation critériée** du bloc Faire.\n\n| Skill | Rôle |\n|---|---|\n| `evfc-sequence-designer` | Construit la séquence complète 4 phases EVFC |\n| `evfc-faire-scenario-generator` | Génère le scénario Faire (mise en situation) |\n| `grilles-criteriees` ← **ce skill** | Produit la grille d\u0027évaluation critériée du Faire |\n\n**Enchaînement naturel :**\n`evfc-sequence-designer` → `evfc-faire-scenario-generator` → **`grilles-criteriees`**\n\nAprès génération d\u0027un scénario Faire, proposer systématiquement : *\"Veux-tu que je génère la grille d\u0027évaluation critériée pour ce scénario ?\"*\n\n## Reference files\n\n- `rules/conversation-policy.md` : politique de cadrage et de réponse selon le type de demande.\n- `rules/output-contract.md` : formats de sortie attendus selon les modes d\u0027usage.\n- `rules/evaluation-design-rules.md` : règles de conception des dimensions, critères, niveaux et validation.\n- `ref/grille-template.md` : trame de grille complète réutilisable.\n- `ref/niveau-descripteurs.md` : bibliothèque de formulations pour les niveaux.\n- `ref/critere-redaction-guide.md` : guide de rédaction de critères observables.\n- `ref/dimensions-catalogue.md` : catalogue de dimensions possibles par contexte.\n- `docs/usage-guide.md` : modes d\u0027usage côté utilisateur.\n- `docs/maintenance-notes.md` : règles de maintenance et d\u0027évolution du skill.\n\n## Validation\n\nAvant de répondre, vérifier :\n- [ ] la grille est adaptée au contexte donné ;\n- [ ] les critères sont observables ;\n- [ ] les niveaux sont progressifs ;\n- [ ] la sortie est exploitable sans réécriture ;\n- [ ] l\u0027indicateur global est simple, explicite et cohérent.\n"},"m6":{"name":"era-loop-coach","title":"ERA Loop Coach","folder":"M6-era-loop-coach","content":"---\nname: era-loop-coach\ndescription: \u003e\n  Aider les formateurs, tuteurs et ingénieurs pédagogiques à mettre en oeuvre la Boucle E.R.A. —\n  Empathie, Résolution, Adhésion — face aux incompréhensions, blocages, frustrations ou conflits\n  en formation d\u0027adultes. Utiliser ce skill dès que l\u0027utilisateur décrit un apprenant qui ne\n  comprend pas, décroche, s\u0027énerve, conteste, se replie, refuse une consigne ou demande une\n  stratégie concrète de remédiation pédagogique. Déclencher aussi systématiquement lorsqu\u0027un\n  blocage survient pendant ou après l\u0027utilisation des skills evfc-sequence-designer ou\n  evfc-faire-scenario-generator — que ce soit durant la phase Écouter (contenu mal compris),\n  Voir (démonstration non assimilée) ou Faire (apprenant bloqué sur le scénario). Déclencheurs\n  supplémentaires : l\u0027apprenant ne suit plus, il bloque sur le Faire, il n\u0027a pas compris la démo,\n  comment je gère ce blocage, remédiation ERA, boucle ERA, l\u0027apprenant s\u0027est bloqué pendant\n  l\u0027exercice, que faire si l\u0027apprenant ne comprend pas.\n---\n\n# ERA Loop Coach\n\n## High-level process\n\n1. Identifier la situation pédagogique décrite par l\u0027utilisateur.\n2. Diagnostiquer le type de blocage : cognitif, relationnel, identitaire, pratique ou technique.\n3. Évaluer le niveau émotionnel : confusion, anxiété, retrait, frustration, colère ou conflit ouvert.\n4. Repérer la posture actuelle du formateur : empathie, neutralité, impatience, déni ou rapport de force.\n5. Si le blocage survient dans une séquence EVFC, identifier la phase concernée (Écouter / Voir / Faire) → adapter la remédiation au contexte de la phase.\n6. Proposer une intervention structurée selon la Boucle E.R.A. :\n   - **Empathie** : sécuriser et valider la difficulté.\n   - **Résolution** : traiter le blocage avec une remédiation adaptée.\n   - **Adhésion** : vérifier le déclic et réengager l\u0027autonomie.\n7. Si posture de déni ou conflit détecté → appliquer d\u0027abord le protocole de désescalade.\n\n---\n\n## Intégration EVFC\n\nCe skill est le **mécanisme de remédiation** de l\u0027écosystème EVFC.\n\n| Phase EVFC | Signal de blocage | Déclenchement ERA |\n|---|---|---|\n| **Écouter** | Apprenant passif, absent, saturé, perdu dans les explications | Oui — blocage cognitif ou surcharge |\n| **Voir** | Démonstration non assimilée, apprenant ne sait pas reproduire | Oui — blocage technique ou procédural |\n| **Faire** | Apprenant bloqué sur le scénario, refuse de continuer, frustration | Oui — blocage cognitif, identitaire ou relationnel |\n\nLire `rules/evfc-integration.md` pour les réponses ERA spécifiques à chaque phase.\n\n**Position dans la chaîne :**\n```\nevfc-sequence-designer\n  → evfc-faire-scenario-generator\n      → [blocage détecté] → era-loop-coach ← CE SKILL\n          → grilles-criteriees (si reprise du Faire après résolution)\n```\n\n---\n\n## Instructions\n\nRéponds comme un ingénieur pédagogique senior et coach de formateurs professionnels d\u0027adultes.\n\nProduis des réponses directement utilisables sur le terrain : scripts de dialogue, gestes pédagogiques, alternatives d\u0027explication, questions de vérification et points de vigilance.\n\nNe te limite pas à expliquer le modèle ERA. Transforme chaque situation en plan d\u0027action.\n\nPour chaque cas terrain, structure la réponse avec ce format :\n\n```\n1. Diagnostic rapide\n2. Étape E — Empathie\n3. Étape R — Résolution\n4. Étape A — Adhésion\n5. Point de vigilance formateur\n```\n\nSi le message de l\u0027utilisateur montre de l\u0027agacement envers l\u0027apprenant, une attribution de mauvaise volonté, une minimisation ou une volonté de forcer l\u0027autorité, commence par une désescalade :\n\n```\n1. Stop pédagogique\n2. Bascule vers l\u0027empathie\n3. Script de reprise\n4. Remédiation immédiate\n```\n\n**Contraintes :**\n\n- Ne jamais humilier ou infantiliser l\u0027apprenant.\n- Ne pas utiliser de formules minimisantes : « c\u0027est simple », « il suffit de », « ce n\u0027est pas difficile ».\n- Valoriser l\u0027effort, la stratégie et la progression plutôt que l\u0027intelligence supposée.\n- Proposer au moins deux options de remédiation quand le blocage est cognitif ou technique.\n- Vérifier l\u0027adhésion réelle par une reformulation active, pas par un simple « c\u0027est bon ? ».\n- Signaler les limites : troubles spécifiques, détresse psychologique, contraintes organisationnelles.\n\n---\n\n## Reference files\n\n- `rules/conversation-policy.md` — posture, limites et règles de dialogue\n- `rules/output-contract.md` — format obligatoire des réponses\n- `rules/era-intervention-protocol.md` — protocole opérationnel ERA\n- `rules/evfc-integration.md` — ← **NOUVEAU** : réponses ERA spécifiques aux phases EVFC\n- `ref/diagnostic-matrix.md` — matrice d\u0027analyse des blocages\n- `ref/dialogue-scripts.md` — scripts prêts à l\u0027emploi\n- `ref/de-escalation-pattern.md` — gestion du conflit et bascule déni → empathie\n- `ref/implementation-checklist.md` — checklist terrain pour formateur\n- `docs/usage-guide.md` — guide d\u0027utilisation\n- `docs/maintenance-notes.md` — notes de maintenance\n\n---\n\n## Validation / rétroaction\n\nAvant de finaliser une réponse, vérifier :\n\n- [ ] Le diagnostic est-il explicite ?\n- [ ] La réponse propose-t-elle une action concrète à dire ou à faire ?\n- [ ] Les trois étapes E.R.A. sont-elles présentes ou la désescalade a-t-elle été priorisée ?\n- [ ] La résolution change-t-elle réellement de registre pédagogique ?\n- [ ] L\u0027adhésion est-elle vérifiée par une reformulation ou une action autonome ?\n- [ ] Si contexte EVFC : la remédiation est-elle adaptée à la phase concernée ?\n"},"m7":{"name":"n8n-automatisation-pedagogique","title":"Automatisation Pédagogique — n8n MCP","folder":"M7-n8n-automatisation","content":"---\nname: n8n-automatisation-pedagogique\ndescription: \u003e\n  Conçoit et génère des workflows d\u0027automatisation pédagogique avec n8n MCP pour les formateurs FPA. Produit des workflows .json prêts à l\u0027import : envoi automatique de livrables, déclenchement de QCM, relances apprenants, pipelines de génération de contenus EVFC. Déclencher pour : \"automatise cette tâche pédagogique\", \"crée un workflow n8n\", \"je veux automatiser l\u0027envoi de mes livrables\", \"génère un .json n8n\", \"pipeline de formation automatisé\", \"déclencher automatiquement\", \"workflow pédagogique\", même sans mention explicite de n8n.\n---\n\n# Automatisation Pédagogique — n8n MCP\n\n## Mission\n\nProduire des workflows n8n (.json) directement importables pour automatiser les tâches répétitives du formateur FPA : envoi de livrables, déclenchement de QCM, relances apprenants, pipelines de génération de contenus EVFC.\n\n---\n\n## High-level process\n\n1. Qualifier le besoin d\u0027automatisation (déclencheur, action, cible)\n2. Identifier les services impliqués (Google Drive, Gmail, Google Forms, Notion, etc.)\n3. Concevoir l\u0027architecture du workflow (trigger → nodes → output)\n4. Générer le JSON n8n structuré et commenté\n5. Fournir la procédure d\u0027import et de configuration\n6. Documenter les variables à personnaliser\n\n---\n\n## Cas d\u0027usage typiques\n\n| Cas | Déclencheur | Action | Output |\n|---|---|---|---|\n| **Envoi livrable formateur** | Nouveau fichier Google Drive | Envoi email automatique | Workflow envoi PDF |\n| **Relance apprenant QCM** | Délai J+2 sans réponse Forms | Email de relance | Workflow relance |\n| **Pipeline EVFC complet** | Webhook → prompt → skill | Génération séquence + grille | Workflow multi-steps |\n| **Notification bilan mission** | Fin de session Cowork | Envoi résumé Notion/Gmail | Workflow notification |\n| **Import QCM auto** | Nouveau CSV Google Drive | Création Google Form via Apps Script | Workflow import |\n\n---\n\n## Structure d\u0027un workflow n8n produit\n\nChaque workflow fourni comprend :\n\n```\nworkflow.json        ← fichier importable directement dans n8n\nREADME-workflow.md  ← procédure d\u0027import + variables à configurer\n```\n\nLe JSON suit la structure canonique n8n :\n- `nodes[]` : liste des nœuds avec type, paramètres, position\n- `connections{}` : câblage entre nœuds\n- `settings{}` : timezone, errorWorkflow\n\n---\n\n## Contraintes de production\n\n- Utiliser uniquement des nœuds n8n natifs ou open-source (pas de nœuds premium sans avertissement)\n- Documenter toutes les variables à remplacer avec `{{VARIABLE_NOM}}`\n- Timezone par défaut : `America/Guadeloupe`\n- Versionner les workflows dans `references/workflows/`\n\n---\n\n## Complémentarité\n\n| Skill | Rôle |\n|---|---|\n| `qcm-evfc-validator` | Génère le CSV et le script Apps Script → M7 automatise l\u0027import |\n| `pdf-pedagogique-export` | Produit le PDF → M7 automatise l\u0027envoi |\n| `evfc-sequence-designer` | Génère la séquence → M7 peut déclencher la chaîne |\n\n**Position dans la chaîne :**\n```\n[skill de production] → livrable → M7-n8n-automatisation → distribution automatisée\n```\n\n---\n\n## Validation\n\nAvant de livrer un workflow :\n\n- [ ] Le JSON est valide et importable dans n8n\n- [ ] Toutes les variables personnalisables sont documentées avec `{{VARIABLE}}`\n- [ ] La procédure d\u0027import est fournie (step by step)\n- [ ] Le timezone est `America/Guadeloupe`\n- [ ] Les nœuds utilisés sont disponibles en version open-source n8n\n"}};
 const MODEL_RECO = {
-  intro: { model: 'claude-sonnet-4-6', reason: 'Narrative guidée structurée + sortie longue annotée - Sonnet offre le bon équilibre qualité/coût.' },
-  m0:    { model: 'claude-sonnet-4-6', reason: 'Restructuration complexe d\'un référentiel en progression EVFC - nécessite compréhension profonde du contexte.' },
-  m1:    { model: 'claude-sonnet-4-6', reason: 'Séquence complète en 4 phases EVFC, sortie longue et structurée - Sonnet est le meilleur rapport qualité/vitesse.' },
-  m2:    { model: 'claude-haiku-4-5',  reason: 'Bibliothèque de prompts au format PTCF répétitif - Haiku est rapide et économique pour ce type de sortie structurée.' },
-  m3:    { model: 'claude-sonnet-4-6', reason: 'Génération de code Apps Script + CSV 9 colonnes aligné pédagogiquement - Sonnet garantit la précision du code.' },
-  m4:    { model: 'claude-sonnet-4-6', reason: 'Scénarios FAIRE ultra-réalistes et nuancés - la créativité contextuelle de Sonnet est idéale ici.' },
-  m5:    { model: 'claude-haiku-4-5',  reason: 'Grille critériée à format tabulaire répétitif - Haiku produit des tableaux précis en un temps record.' },
-  m6:    { model: 'claude-haiku-4-5',  reason: 'Fiche ERA à structure courte et prévisible - Haiku est suffisant et très rapide pour ce format.' },
-  m7:    { model: 'claude-sonnet-4-6', reason: 'Génération de JSON n8n complexe + instructions techniques - Sonnet assure la cohérence du code.' },
+  intro: { model: MODEL_IDS.sonnet46, reason: 'Narrative guidée structurée + sortie longue annotée - Sonnet offre le bon équilibre qualité/coût.' },
+  m0:    { model: MODEL_IDS.sonnet46, reason: 'Restructuration complexe d\'un référentiel en progression EVFC - nécessite compréhension profonde du contexte.' },
+  m1:    { model: MODEL_IDS.sonnet46, reason: 'Séquence complète en 4 phases EVFC, sortie longue et structurée - Sonnet est le meilleur rapport qualité/vitesse.' },
+  m2:    { model: MODEL_IDS.haiku45,  reason: 'Bibliothèque de prompts au format PTCF répétitif - Haiku est rapide et économique pour ce type de sortie structurée.' },
+  m3:    { model: MODEL_IDS.sonnet46, reason: 'Génération de code Apps Script + CSV 9 colonnes aligné pédagogiquement - Sonnet garantit la précision du code.' },
+  m4:    { model: MODEL_IDS.sonnet46, reason: 'Scénarios FAIRE ultra-réalistes et nuancés - la créativité contextuelle de Sonnet est idéale ici.' },
+  m5:    { model: MODEL_IDS.haiku45,  reason: 'Grille critériée à format tabulaire répétitif - Haiku produit des tableaux précis en un temps record.' },
+  m6:    { model: MODEL_IDS.haiku45,  reason: 'Fiche ERA à structure courte et prévisible - Haiku est suffisant et très rapide pour ce format.' },
+  m7:    { model: MODEL_IDS.sonnet46, reason: 'Génération de JSON n8n complexe + instructions techniques - Sonnet assure la cohérence du code.' },
 };
 
 function modelRecoBanner(skillId) {
@@ -1985,6 +2128,7 @@ let isDark = false;
 let navHistory = [];      // stack of skill ids visited
 let activeChain = [];     // current chain being navigated
 let resultCache = {};     // { skillId: lastGeneratedText }
+let maxTokensByModule = parseStoredJson(STORAGE_KEYS.maxTokensByModule, {});
 
 // ─────────────────────────────────────────────
 // THEME
@@ -1996,7 +2140,7 @@ function toggleSidebar() {
   btn.textContent = collapsed ? '▶' : '◀';
   btn.title = collapsed ? 'Afficher le panneau' : 'Masquer le panneau';
   btn.style.left = collapsed ? '0px' : '286px';
-  localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+  safeSetLocalStorage(STORAGE_KEYS.sidebarCollapsed, collapsed ? '1' : '0', 'État du panneau latéral non enregistré.');
 }
 
 function toggleTheme() {
@@ -2090,21 +2234,13 @@ function renderWelcome() {
       <div class="welcome-model-section">
         <div class="welcome-model-title">🤖 Quel modèle Claude choisir ?</div>
         <div class="welcome-model-cards">
-          <div class="welcome-model-card" style="background:#7c3aed0d;border-color:#7c3aed40;color:#7c3aed">
-            <div class="welcome-model-card-name">Haiku 4.5</div>
-            <div class="welcome-model-card-id">claude-haiku-4-5</div>
-            <div class="welcome-model-card-desc">Rapide et économique. Idéal pour les sorties structurées et répétitives (grilles, fiches, bibliothèques de prompts).</div>
-          </div>
-          <div class="welcome-model-card" style="background:#0284c70d;border-color:#0284c740;color:#0284c7">
-            <div class="welcome-model-card-name">Sonnet 4.6 ✦ Défaut</div>
-            <div class="welcome-model-card-id">claude-sonnet-4-6</div>
-            <div class="welcome-model-card-desc">Équilibré qualité / vitesse / coût. Recommandé pour la majorité des modules EVFC — génération de code, séquences complexes, scénarios.</div>
-          </div>
-          <div class="welcome-model-card" style="background:#f59e0b0d;border-color:#f59e0b50;color:#b45309">
-            <div class="welcome-model-card-name">Opus 4.8</div>
-            <div class="welcome-model-card-id">claude-opus-4-8</div>
-            <div class="welcome-model-card-desc">Le plus puissant. Disponible mais <strong>non recommandé</strong> par le développeur : coût élevé sans gain significatif sur ces tâches pédagogiques.</div>
-          </div>
+          ${Object.entries(MODEL_CATALOG).map(([id, model]) => `
+            <div class="welcome-model-card" style="background:${model.color}0d;border-color:${model.color}40;color:${model.color}">
+              <div class="welcome-model-card-name">${model.label}${model.default ? ' ✦ Défaut' : ''}</div>
+              <div class="welcome-model-card-id">${id}</div>
+              <div class="welcome-model-card-desc">${getModelDescription(id)}</div>
+            </div>
+          `).join('')}
         </div>
 
         <table class="welcome-model-reco-table">
@@ -2291,6 +2427,11 @@ function renderSkillPanel() {
     </div>
   `).join('');
 
+  const selectedMaxTokens = getMaxTokensForSkill(skill.id);
+  const tokenOptionsHTML = TOKEN_PRESETS.map(value =>
+    `<option value="${value}" ${value === selectedMaxTokens ? 'selected' : ''}>${value.toLocaleString('fr-FR')} tokens</option>`
+  ).join('');
+
   // ── M5 : bloc contextuel M4 ──
   const hasCachedM4 = !!resultCache['m4'];
   const cameFromM4 = navHistory.includes('m4');
@@ -2433,6 +2574,17 @@ function renderSkillPanel() {
       ${fieldsHTML}
     </div>
 
+    <div class="generation-controls">
+      <div class="token-control">
+        <label for="field_max_tokens">Longueur maximale du livrable</label>
+        <select id="field_max_tokens" onchange="setMaxTokensForCurrentSkill(this.value)">
+          ${tokenOptionsHTML}
+        </select>
+        <span class="input-hint">Augmente cette valeur pour les scénarios longs, bibliothèques complètes ou exports techniques.</span>
+      </div>
+      <button class="btn-copy-prompt" onclick="copyPromptBeforeGeneration()">📋 Copier le prompt</button>
+    </div>
+
     <button class="btn-generate" id="btn-gen" onclick="generate()">
       <div class="spinner"></div>
       <span class="btn-text">⚡ Générer avec l'IA</span>
@@ -2545,33 +2697,131 @@ function prefillM3From(sourceId) {
 }
 
 // ─────────────────────────────────────────────
+// PROMPT + TOKEN SETTINGS
+// ─────────────────────────────────────────────
+function getMaxTokensForSkill(skillId) {
+  return Number(maxTokensByModule[skillId] || DEFAULT_MAX_TOKENS_BY_MODULE[skillId] || 6000);
+}
+
+function setMaxTokensForCurrentSkill(value) {
+  if (!currentSkill) return;
+  const parsed = Number(value);
+  if (!TOKEN_PRESETS.includes(parsed)) return;
+  maxTokensByModule[currentSkill.id] = parsed;
+  safeSetLocalStorage(
+    STORAGE_KEYS.maxTokensByModule,
+    JSON.stringify(maxTokensByModule),
+    'Préférence de longueur non enregistrée.'
+  );
+}
+
+function collectSkillInputs(skill, markInvalid = true) {
+  const inputs = {};
+  let valid = true;
+  skill.fields.forEach(f => {
+    const el = document.getElementById(`field_${f.id}`);
+    if (!el) return;
+    inputs[f.id] = el.value.trim();
+    if (f.required && !inputs[f.id]) {
+      if (markInvalid) el.style.borderColor = 'var(--red)';
+      valid = false;
+    } else if (markInvalid) {
+      el.style.borderColor = '';
+    }
+  });
+  return { inputs, valid };
+}
+
+function buildUserPrompt(skill, inputs) {
+  return skill.fields.map(f => {
+    const val = inputs[f.id];
+    if (!val) return null;
+    return `**${f.label}** : ${val}`;
+  }).filter(Boolean).join('\n');
+}
+
+function getSkillContextForModule(skillId) {
+  return EVFC_MODULE_SKILLS[skillId] || null;
+}
+
+function buildSystemPrompt(skill) {
+  const skillContext = getSkillContextForModule(skill.id);
+  if (!skillContext) return skill.systemPrompt;
+  return [
+    skill.systemPrompt.trim(),
+    '',
+    '---',
+    `SKILL EVFC À APPLIQUER : ${skillContext.name}`,
+    `Titre : ${skillContext.title}`,
+    `Dossier source : skills/${skillContext.folder}/SKILL.md`,
+    '',
+    'Instructions : applique strictement le skill ci-dessous pour cadrer la génération, le format du livrable, les contraintes pédagogiques, les interdictions et les vérifications finales.',
+    '',
+    skillContext.content.trim()
+  ].join('\n');
+}
+
+function buildPromptPreview(skill, inputs) {
+  return [
+    `# ${skill.module} - ${skill.name}`,
+    '',
+    '## Modèle',
+    selectedModel,
+    '',
+    '## Longueur maximale',
+    `${getMaxTokensForSkill(skill.id)} tokens`,
+    '',
+    '## System prompt',
+    buildSystemPrompt(skill),
+    '',
+    '## Message utilisateur',
+    buildUserPrompt(skill, inputs)
+  ].join('\n');
+}
+
+function copyPromptBeforeGeneration() {
+  if (!currentSkill) return;
+  const { inputs, valid } = collectSkillInputs(currentSkill, true);
+  if (!valid) {
+    showToast('⚠️ Remplis les champs obligatoires avant de copier le prompt', 'error');
+    return;
+  }
+  navigator.clipboard.writeText(buildPromptPreview(currentSkill, inputs))
+    .then(() => showToast('📋 Prompt copié dans le presse-papiers', 'success'))
+    .catch(() => showToast('❌ Impossible de copier le prompt', 'error'));
+}
+
+// ─────────────────────────────────────────────
 // MODEL SELECTION
 // ─────────────────────────────────────────────
-const MODEL_STORAGE_KEY = 'evfc_model';
-let selectedModel = localStorage.getItem(MODEL_STORAGE_KEY) || 'claude-sonnet-4-6';
+let selectedModel = safeGetLocalStorage(STORAGE_KEYS.model, DEFAULT_MODEL_ID);
+if (!MODEL_CATALOG[selectedModel]) selectedModel = DEFAULT_MODEL_ID;
 
 function setModel(modelId) {
+  if (!MODEL_CATALOG[modelId]) modelId = DEFAULT_MODEL_ID;
   selectedModel = modelId;
-  localStorage.setItem(MODEL_STORAGE_KEY, modelId);
+  safeSetLocalStorage(STORAGE_KEYS.model, modelId, 'Modèle choisi non enregistré.');
 }
 
 function initModelSelect() {
   const sel = document.getElementById('model-select');
-  if (sel) sel.value = selectedModel;
+  if (!sel) return;
+  sel.innerHTML = Object.entries(MODEL_CATALOG).map(([id, model]) =>
+    `<option value="${id}">${model.label} — ${model.short}</option>`
+  ).join('');
+  sel.value = selectedModel;
 }
 
 // ─────────────────────────────────────────────
 // API KEY MANAGEMENT
 // ─────────────────────────────────────────────
-const STORAGE_KEY = 'evfc_anthropic_api_key';
-
 function getApiKey() {
-  return localStorage.getItem(STORAGE_KEY) || '';
+  return safeGetLocalStorage(STORAGE_KEYS.apiKey, '');
 }
 
 function saveApiKey(key) {
-  if (key) localStorage.setItem(STORAGE_KEY, key.trim());
-  else localStorage.removeItem(STORAGE_KEY);
+  if (key) safeSetLocalStorage(STORAGE_KEYS.apiKey, key.trim(), 'Clé API non enregistrée.');
+  else safeRemoveLocalStorage(STORAGE_KEYS.apiKey);
   updateKeyStatus();
 }
 
@@ -2683,33 +2933,16 @@ async function generate() {
   const skill = currentSkill;
   const btn = document.getElementById('btn-gen');
 
-  // Collect fields
-  const inputs = {};
-  let valid = true;
-  skill.fields.forEach(f => {
-    const el = document.getElementById(`field_${f.id}`);
-    if (el) {
-      inputs[f.id] = el.value.trim();
-      if (f.required && !inputs[f.id]) {
-        el.style.borderColor = 'var(--red)';
-        valid = false;
-      } else {
-        el.style.borderColor = '';
-      }
-    }
-  });
+  const { inputs, valid } = collectSkillInputs(skill, true);
 
   if (!valid) {
     showToast('⚠️ Remplis les champs obligatoires', 'error');
     return;
   }
 
-  // Build user prompt
-  const userPrompt = skill.fields.map(f => {
-    const val = inputs[f.id];
-    if (!val) return null;
-    return `**${f.label}** : ${val}`;
-  }).filter(Boolean).join('\n');
+  const userPrompt = buildUserPrompt(skill, inputs);
+  const systemPrompt = buildSystemPrompt(skill);
+  const maxTokens = getMaxTokensForSkill(skill.id);
 
   btn.classList.add('loading');
   btn.disabled = true;
@@ -2732,18 +2965,18 @@ async function generate() {
   `;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(API_CONFIG.endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': API_CONFIG.anthropicVersion,
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
         model: selectedModel,
-        max_tokens: 6000,
-        system: skill.systemPrompt,
+        max_tokens: maxTokens,
+        system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
     });
@@ -2765,7 +2998,11 @@ async function generate() {
     const text = data.content?.find(b => b.type === 'text')?.text || '';
     currentResult = text;
     resultCache[skill.id] = text;
-    try { localStorage.setItem('evfc_result_cache', JSON.stringify(resultCache)); } catch(e) {}
+    safeSetLocalStorage(
+      STORAGE_KEYS.resultCache,
+      JSON.stringify(resultCache),
+      'Cache local plein ou indisponible : le livrable reste visible, mais ne sera pas restauré au prochain lancement.'
+    );
 
     renderResult(text, skill);
     showToast('✅ Livrable généré !', 'success');
@@ -2814,20 +3051,8 @@ function renderResult(text, skill) {
   const isM5 = skill.id === 'm5';
   const isM2 = skill.id === 'm2';
 
-  // Mapping module → skill(s) technique(s) du Pack EVFC-FPA
-  const EVFC_PACK_MAP = {
-    'intro': [{ name: 'INTRO-simulateur-edc-evfc',               color: '#6366f1' },
-              { name: 'orchestrateur-architecte-formateur-augmente', color: '#002455' }],
-    'm0':   [{ name: 'M0-progression-pedagogique-evfc',          color: '#0891b2' }],
-    'm1':   [{ name: 'M1-evfc-sequence-designer',                color: '#0284c7' }],
-    'm2':   [{ name: 'M2-ai-training-designer',                  color: '#7c3aed' }],
-    'm3':   [{ name: 'M3-qcm-evfc-validator',                    color: '#059669' }],
-    'm4':   [{ name: 'M4-evfc-faire-scenario-generator',         color: '#d97706' }],
-    'm5':   [{ name: 'M5-grilles-criteriees',                    color: '#dc2626' }],
-    'm6':   [{ name: 'M6-era-loop-coach',                        color: '#db2777' }],
-    'm7':   [{ name: 'M7-n8n-automatisation',                    color: '#374151' }],
-  };
-  const packSkills = EVFC_PACK_MAP[skill.id] || [];
+  const skillContext = getSkillContextForModule(skill.id);
+  const packSkills = skillContext ? [{ name: skillContext.name, color: skill.color }] : [];
   const packBadgesHTML = packSkills.length ? `
     <div class="pack-skill-badges">
       ${packSkills.map(s => `<span class="pack-skill-badge" style="color:${s.color};border-color:${s.color}">🧩 ${s.name}</span>`).join('')}
@@ -3720,16 +3945,13 @@ document.addEventListener('keydown', e => {
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
-try {
-  const saved = localStorage.getItem('evfc_result_cache');
-  if (saved) Object.assign(resultCache, JSON.parse(saved));
-} catch(e) {}
+Object.assign(resultCache, parseStoredJson(STORAGE_KEYS.resultCache, {}));
 renderSidebar();
 renderWelcome();
 updateKeyStatus();
 initModelSelect();
 // Restore sidebar collapsed state
-if (localStorage.getItem('sidebarCollapsed') === '1') {
+if (safeGetLocalStorage(STORAGE_KEYS.sidebarCollapsed, '') === '1') {
   document.getElementById('app-layout').classList.add('sidebar-collapsed');
   const btn = document.getElementById('sidebar-toggle');
   btn.textContent = '▶';
@@ -3843,8 +4065,16 @@ Indique quel modèle Claude est recommandé pour ce module et pourquoi. Un bouto
 #### Le formulaire de saisie
 Chaque module propose des champs à remplir. Les champs marqués d'un **astérisque rouge \*** sont obligatoires.
 
+#### Le sélecteur de longueur et le bouton « Copier le prompt »
+Juste avant le bouton de génération :
+- **Longueur maximale du livrable** : choisissez parmi 3 000 / 6 000 / 8 000 / 12 000 jetons. Augmentez cette valeur pour les scénarios longs ou les bibliothèques complètes ; réduisez-la pour des livrables courts et rapides.
+- **📋 Copier le prompt** : copie l'intégralité du prompt qui serait envoyé à l'IA (modèle, longueur, cadrage métier, vos champs) — utile pour le tester ailleurs ou le réutiliser sans consommer de jetons.
+
 #### La zone de résultat
 Apparaît après la génération. Elle contient le livrable Markdown et une barre d'outils : 📋 Copier · 📄 PDF · 📝 DOCX.
+
+#### La bannière de restauration
+Si un livrable a déjà été généré pour ce module, une bannière **« 📄 Un livrable a déjà été généré pour ce module »** apparaît au-dessus du résultat, avec un bouton **Revoir le livrable**. Il est conservé même après fermeture du navigateur (un seul livrable mémorisé par module à la fois).
 
 ### 4.4 Le pied de page (en bas)
 
@@ -3946,6 +4176,22 @@ Bande bleue marine affichant les informations de contact et de version.
 1. Après génération, cliquez sur le module suivant dans le **bandeau de chaîne**
 2. Si des données sont disponibles, un bouton **« Utiliser [Module] »** apparaît pour pré-remplir automatiquement
 
+### Ajuster la longueur d'un livrable
+
+1. Repérez le sélecteur **« Longueur maximale du livrable »** au-dessus du bouton ⚡ Générer
+2. Augmentez la valeur si le livrable précédent a été coupé avant la fin
+3. Réduisez-la pour les modules à sortie courte (ex. : M6 — fiche ERA) afin de générer plus vite et à moindre coût
+
+> Ce réglage est mémorisé **par module** : chaque module garde sa propre préférence de longueur.
+
+### Copier le prompt sans générer
+
+1. Remplissez les champs du module comme pour une génération normale
+2. Cliquez sur **📋 Copier le prompt** au lieu de ⚡ Générer
+3. Collez le contenu copié dans Claude.ai, une autre IA, ou un document — aucun jeton n'est consommé
+
+> Si un champ obligatoire est vide, l'application vous le signale avant de copier.
+
 ---
 
 ## 7. Glossaire
@@ -3957,6 +4203,7 @@ Bande bleue marine affichant les informations de contact et de version.
 | **Livrable** | Document produit par l'IA à l'issue d'une génération |
 | **Clé API** | Code d'accès personnel pour utiliser le service IA Claude (\`sk-ant-…\`) |
 | **Token** | Unité de mesure de l'IA (environ ¾ d'un mot) — chaque génération en consomme des milliers |
+| **max_tokens** | Limite de longueur du livrable généré, réglable par module (3 000 / 6 000 / 8 000 / 12 000) via le sélecteur « Longueur maximale du livrable ». Une valeur trop basse peut couper le résultat avant la fin |
 | **Markdown** | Format de mise en forme textuelle (titres, listes, tableaux) |
 | **localStorage** | Espace de stockage dans votre navigateur — votre clé API y est enregistrée |
 | **EDC** | Étude De Cas — scénario pédagogique simulé (module INTRO) |
@@ -3967,6 +4214,9 @@ Bande bleue marine affichant les informations de contact et de version.
 | **Chaîne** | Enchaînement recommandé de modules pour une production cohérente |
 | **Modèle Claude** | Version du moteur IA utilisé (Haiku / Sonnet / Opus) |
 | **RNCP** | Répertoire National des Certifications Professionnelles |
+| **Skill EVFC** | Fiche de règles métier propre à un module (ex. : \`evfc-sequence-designer\` pour M1), injectée automatiquement dans le prompt envoyé à l'IA |
+| **Prompt système** | Instructions de cadrage envoyées à l'IA avant votre demande : combine le rôle du module et le skill EVFC correspondant. Visible via le bouton 📋 Copier le prompt |
+| **Pack EVFC-FPA** | Bibliothèque de skills (un par module) sur laquelle repose l'application — son nom technique apparaît en badge sous le titre de chaque livrable |
 
 ---
 
@@ -3974,7 +4224,7 @@ Bande bleue marine affichant les informations de contact et de version.
 
 ### Organisation
 - Suivez la chaîne recommandée (**INTRO → M0 → M1 → M4 → M5 → M6**) pour des livrables cohérents entre eux.
-- Exportez chaque livrable dès qu'il vous convient : les résultats sont conservés en mémoire pendant votre session, mais disparaissent si vous fermez l'onglet.
+- Chaque module conserve automatiquement son **dernier livrable généré** dans votre navigateur (bannière « Revoir le livrable »), même après fermeture de l'onglet. Une nouvelle génération sur le même module remplace l'ancienne — exportez (PDF/DOCX/Copier) ce que vous voulez garder durablement.
 - Commencez par **INTRO** si vous découvrez la méthode EVFC.
 
 ### Qualité des saisies
@@ -4011,7 +4261,8 @@ Bande bleue marine affichant les informations de contact et de version.
 | Les champs sont encadrés en rouge | Champs obligatoires (*) non remplis | Remplissez tous les champs marqués d'un astérisque |
 | Le PDF ne se télécharge pas | Bloqueur du navigateur | Autorisez les téléchargements depuis ce site |
 | Le DOCX ne s'ouvre pas correctement | Version ancienne de Word | Mettez à jour ou ouvrez avec Word en ligne |
-| Le résultat a disparu après navigation | Comportement normal (mémoire de session) | Exportez chaque livrable immédiatement après génération |
+| Le résultat ne s'affiche plus après navigation | Normal : seul le **dernier** livrable de chaque module est conservé | Cliquez sur **« Revoir le livrable »** dans la bannière du module concerné, ou régénérez |
+| Un message ⚠️ apparaît sur le stockage local | Cache du navigateur plein, désactivé ou données illisibles | Libérez de l'espace navigateur, ou réessayez en navigation privée ; exportez vos livrables importants en PDF/DOCX par sécurité |
 | Le bouton « Utiliser M1 » n'apparaît pas en M3 | Aucun livrable M1 n'a été généré | Générez d'abord une séquence en M1, puis revenez en M3 |
 | Résultats en anglais | Rare anomalie de l'IA | Ajoutez « Réponds uniquement en français » dans vos champs |
 
@@ -4030,7 +4281,7 @@ Bande bleue marine affichant les informations de contact et de version.
 ### Les 3 erreurs à éviter
 
 1. **Saisir une compétence vague** → préférez une formulation précise et observable
-2. **Fermer l'onglet sans exporter** → les résultats ne sont pas sauvegardés automatiquement entre sessions
+2. **Régénérer un module sans avoir exporté le livrable précédent** → seul le dernier résultat par module est conservé, l'ancien est remplacé
 3. **Utiliser Opus 4.8 par défaut** → plus lent, plus coûteux, sans avantage sur les tâches pédagogiques courantes
 
 ### Le meilleur parcours pour démarrer
