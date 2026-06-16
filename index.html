@@ -1832,15 +1832,14 @@ const MODEL_MAX_OUTPUT_TOKENS = {
   [MODEL_IDS.sonnet46]: 64000,
   [MODEL_IDS.opus48]: 128000,
 };
-const TOKEN_PRESETS = [6000, 8000, 12000, 18000, 24000];
+const TOKEN_PRESETS = [6000, 8000, 12000, 18000, 24000, 36000];
 // Valeurs ajustées d'après des tests de génération réels (tokens de sortie mesurés + marge) :
-// INTRO/M0 ~10079, M1 ~8046, M3 ~12727, M4 ~5799, M5 ~5401, M6 ~5224 tokens de sortie.
-// M2 a généré une réponse tronquée même à 24000 → "no max" par défaut.
+// INTRO/M0 ~10079, M1 ~8046, M3 ~12727, M4 ~5799, M5 ~5401, M6 ~5224, M2 ~32900 tokens de sortie.
 const DEFAULT_MAX_TOKENS_BY_MODULE = {
   intro: 12000,
   m0: 12000,
   m1: 12000,
-  m2: NO_MAX_TOKENS,
+  m2: 36000,
   m3: 18000,
   m4: 8000,
   m5: 8000,
@@ -2770,6 +2769,8 @@ function setMaxTokensForCurrentSkill(value) {
   if (!currentSkill) return;
   if (value === NO_MAX_TOKENS) {
     maxTokensByModule[currentSkill.id] = NO_MAX_TOKENS;
+    const modelMax = MODEL_MAX_OUTPUT_TOKENS[selectedModel] || 64000;
+    showToast(`⚠️ "Pas de limite" : la génération peut aller jusqu'à ${modelMax.toLocaleString('fr-FR')} tokens (max du modèle ${MODEL_LABELS[selectedModel] || selectedModel}) — temps de génération et coût plus élevés.`, 'error');
   } else {
     const parsed = Number(value);
     if (!TOKEN_PRESETS.includes(parsed)) return;
@@ -4498,7 +4499,7 @@ Chaque module propose des champs à remplir. Les champs marqués d'un **astéris
 
 #### Les paramètres de génération et le bouton « Copier le prompt »
 Juste avant le bouton de génération :
-- **Longueur maximale du livrable** : choisissez parmi 6 000 / 8 000 / 12 000 / 18 000 / 24 000 jetons, ou « Pas de limite » pour utiliser le maximum autorisé par le modèle sélectionné. Augmentez cette valeur pour les scénarios longs ou les bibliothèques complètes ; réduisez-la pour des livrables courts et rapides. Utilisez « Pas de limite » si une génération est tronquée malgré un réglage élevé.
+- **Longueur maximale du livrable** : choisissez parmi 6 000 / 8 000 / 12 000 / 18 000 / 24 000 / 36 000 jetons, ou « Pas de limite » pour utiliser le maximum autorisé par le modèle sélectionné (une alerte rappelle alors le coût et le temps de génération plus élevés). Augmentez cette valeur pour les scénarios longs ou les bibliothèques complètes ; réduisez-la pour des livrables courts et rapides. Utilisez « Pas de limite » si une génération est tronquée malgré un réglage élevé.
 - **Créativité du modèle** : choisissez la temperature du module. Une valeur basse cadre davantage la sortie ; une valeur haute favorise les variantes et la créativité.
 - **📋 Copier le prompt** : copie l'intégralité du prompt qui serait envoyé à l'IA (modèle, longueur, créativité, cadrage métier, vos champs) — utile pour le tester ailleurs ou le réutiliser sans consommer de jetons.
 
@@ -4653,7 +4654,7 @@ Bande bleue marine affichant les informations de contact et de version.
 | **Livrable** | Document produit par l'IA à l'issue d'une génération |
 | **Clé API** | Code d'accès personnel pour utiliser le service IA Claude (\`sk-ant-…\`) |
 | **Token** | Unité de mesure de l'IA (environ ¾ d'un mot) — chaque génération en consomme des milliers |
-| **max_tokens** | Limite de longueur du livrable généré, réglable par module (6 000 / 8 000 / 12 000 / 18 000 / 24 000, ou « Pas de limite ») via le sélecteur « Longueur maximale du livrable ». Une valeur trop basse peut couper le résultat avant la fin |
+| **max_tokens** | Limite de longueur du livrable généré, réglable par module (6 000 / 8 000 / 12 000 / 18 000 / 24 000 / 36 000, ou « Pas de limite ») via le sélecteur « Longueur maximale du livrable ». Une valeur trop basse peut couper le résultat avant la fin |
 | **temperature** | Niveau de créativité du modèle, réglable par module. Plus la valeur est basse, plus la sortie est cadrée ; plus elle est haute, plus elle varie |
 | **Markdown** | Format de mise en forme textuelle (titres, listes, tableaux) |
 | **localStorage** | Espace de stockage dans votre navigateur — votre clé API y est enregistrée |

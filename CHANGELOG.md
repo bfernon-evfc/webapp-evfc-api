@@ -8,6 +8,19 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 16 juin 2026 — Nouvelle mesure M2 et alerte sur "Pas de limite" — Mis à jour avec Claude
+
+### 1. Recalibrage M2 d'après une nouvelle mesure (1829 + 32900 tokens, temp=0.5, Haiku 4.5)
+
+- Ajout du palier `36000` dans `TOKEN_PRESETS`
+- Défaut `DEFAULT_MAX_TOKENS_BY_MODULE.m2` : `NO_MAX_TOKENS` → `36000` (marge suffisante au-dessus des 32900 tokens de sortie mesurés)
+
+### 2. Alerte lors du choix "Pas de limite (max du modèle)"
+
+- Un toast d'avertissement s'affiche désormais quand l'utilisateur sélectionne cette option, rappelant le plafond réel du modèle actif et le coût/temps de génération plus élevés
+
+---
+
 ## Session 16 juin 2026 — Correctif placeholder M6, options M3 et calibrage tokens/temperature — Mis à jour avec Claude
 
 ### 1. Correctif affichage tronqué dans la modale M6
