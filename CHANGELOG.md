@@ -8,6 +8,17 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 16 juin 2026 — Bouton "Vider les livrables" — Mis à jour avec Claude
+
+### 1. Nouveau bouton dans l'en-tête : 🗑️ Vider les livrables
+
+- Affiche une confirmation (`window.confirm`) rappelant que seuls les livrables générés en cache sont effacés
+- Vide `resultCache` / `resultModelByModule` (en mémoire et `localStorage` : `evfc_result_cache`, `evfc_result_model_by_module`)
+- La clé API (`evfc_anthropic_api_key`) et les préférences par module (modèle, `max_tokens`, `temperature`) ne sont pas touchées
+- Réaffiche le panneau du module en cours après le vidage et affiche un toast de confirmation
+
+---
+
 ## Session 16 juin 2026 — Rectificatif mesure M0 — Mis à jour avec Claude
 
 ### 1. Correction des valeurs mesurées M0 (distinctes d'INTRO)

@@ -1734,6 +1734,10 @@
       <span>?</span>
       <span>Aide</span>
     </button>
+    <button class="btn-help" onclick="confirmClearGeneratedResults()" title="Efface uniquement les livrables générés mis en cache pour cette session. La clé API et vos préférences sont conservées.">
+      <span>🗑️</span>
+      <span>Vider les livrables</span>
+    </button>
     <button class="btn-theme" onclick="toggleTheme()">
       <span id="theme-icon">🌙</span>
       <span id="theme-label">Sombre</span>
@@ -2187,6 +2191,29 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   document.getElementById('theme-icon').textContent = isDark ? '☀️' : '🌙';
   document.getElementById('theme-label').textContent = isDark ? 'Clair' : 'Sombre';
+}
+
+// ─────────────────────────────────────────────
+// VIDER LES LIVRABLES (cache de session uniquement)
+// ─────────────────────────────────────────────
+function confirmClearGeneratedResults() {
+  const confirmed = window.confirm(
+    '⚠️ Vider les livrables générés ?\n\n' +
+    'Cette action efface uniquement les livrables générés mis en cache pour cette session (tous modules confondus).\n\n' +
+    'Votre clé API et vos préférences (modèle, longueur, créativité) sont conservées.\n\n' +
+    'Cette action est irréversible. Continuer ?'
+  );
+  if (!confirmed) return;
+  clearGeneratedResults();
+}
+
+function clearGeneratedResults() {
+  resultCache = {};
+  resultModelByModule = {};
+  safeRemoveLocalStorage(STORAGE_KEYS.resultCache);
+  safeRemoveLocalStorage(STORAGE_KEYS.resultModelByModule);
+  if (currentSkill) renderSkillPanel();
+  showToast('🗑️ Livrables générés effacés. Clé API et préférences conservées.');
 }
 
 // ─────────────────────────────────────────────

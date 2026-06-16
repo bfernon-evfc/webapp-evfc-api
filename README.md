@@ -48,6 +48,7 @@ M7 intervient en aval pour automatiser l'exploitation ou la distribution des liv
 - **Feedback visible en cas d'échec localStorage** : cache plein, stockage indisponible ou données locales illisibles ne restent plus silencieux.
 - **Enchaînement de modules** : résultats d'un module pré-remplissent automatiquement le suivant (M4 → M5, M1/M0/M2 → M3).
 - **Persistance des livrables** : les résultats générés sont conservés en `localStorage` et restent accessibles lors de la navigation entre modules.
+- **Bouton « 🗑️ Vider les livrables »** dans l'en-tête : efface, après confirmation, uniquement les livrables générés mis en cache (`evfc_result_cache`, `evfc_result_model_by_module`). La clé API et les préférences (modèle, longueur, créativité) sont conservées.
 - **Export PDF** avec en-tête Édumédiapole, tableaux Markdown et pagination.
 - **Export DOCX** via chargement dynamique de `docx.js`, avec styles de titres, tableaux et mise en page Édumédiapole.
 - **Export DOCX combiné multi-modules** : assemble plusieurs livrables mémorisés en un seul fichier Word.
