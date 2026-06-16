@@ -1826,16 +1826,25 @@ const MODEL_LABELS = Object.fromEntries(
 );
 
 const DEFAULT_MODEL_ID = Object.keys(MODEL_CATALOG).find(id => MODEL_CATALOG[id].default) || MODEL_IDS.sonnet46;
-const TOKEN_PRESETS = [6000, 12000, 18000, 24000];
+const NO_MAX_TOKENS = 'nomax';
+const MODEL_MAX_OUTPUT_TOKENS = {
+  [MODEL_IDS.haiku45]: 64000,
+  [MODEL_IDS.sonnet46]: 64000,
+  [MODEL_IDS.opus48]: 128000,
+};
+const TOKEN_PRESETS = [6000, 8000, 12000, 18000, 24000];
+// Valeurs ajustées d'après des tests de génération réels (tokens de sortie mesurés + marge) :
+// INTRO/M0 ~10079, M1 ~8046, M3 ~12727, M4 ~5799, M5 ~5401, M6 ~5224 tokens de sortie.
+// M2 a généré une réponse tronquée même à 24000 → "no max" par défaut.
 const DEFAULT_MAX_TOKENS_BY_MODULE = {
-  intro: 6000,
-  m0: 6000,
-  m1: 6000,
-  m2: 18000,
-  m3: 6000,
-  m4: 18000,
-  m5: 6000,
-  m6: 6000,
+  intro: 12000,
+  m0: 12000,
+  m1: 12000,
+  m2: NO_MAX_TOKENS,
+  m3: 18000,
+  m4: 8000,
+  m5: 8000,
+  m6: 8000,
   m7: 18000,
 };
 const TEMPERATURE_PRESETS = [
@@ -1844,14 +1853,15 @@ const TEMPERATURE_PRESETS = [
   { value: 0.7, label: '0.7 — créatif' },
   { value: 1, label: '1.0 — exploratoire' },
 ];
+// Températures recommandées d'après les tests de génération réels par module.
 const DEFAULT_TEMPERATURE_BY_MODULE = {
   intro: 0.7,
-  m0: 0.4,
+  m0: 0.7,
   m1: 0.5,
-  m2: 0.7,
-  m3: 0.3,
-  m4: 0.8,
-  m5: 0.3,
+  m2: 0.5,
+  m3: 0.2,
+  m4: 0.5,
+  m5: 0.2,
   m6: 0.5,
   m7: 0.3,
 };
@@ -2054,7 +2064,7 @@ Couvre les 7 familles FPA selon la demande. Présente en Markdown avec blocs de 
     fields: [
       { id: 'competence', label: 'Compétence / Contenu évalué', type: 'text', placeholder: 'Ex: Les fondamentaux des réseaux TCP/IP', required: true },
       { id: 'phase', label: 'Phase EVFC cible', type: 'select', options: ['Écouter', 'Voir', 'Écouter + Voir'], required: true },
-      { id: 'nb_questions', label: 'Nombre de questions', type: 'select', options: ['5', '8', '10', '12', '15'], required: false },
+      { id: 'nb_questions', label: 'Nombre de questions', type: 'select', options: ['5', '10', '15', '20'], required: false },
       { id: 'type_qcm', label: 'Type de questions', type: 'select', options: ['QCM (choix unique)', 'QCM (choix multiple)', 'Mixte QCM + QRL', 'Vrai/Faux + justification'], required: false }
     ],
     systemPrompt: `Tu es un expert en évaluation pédagogique alignée sur la méthode EVFC.
@@ -2111,7 +2121,7 @@ Ajoute une notice d'utilisation courte pour le formateur.`
     color: '#db2777',
     chain: ['m1'],
     fields: [
-      { id: 'blocage', label: 'Description du blocage ou comportement observé', type: 'textarea', placeholder: 'Ex: L\'apprenant refuse de faire l\'exercice, dit "ça ne sert à rien"...', required: true },
+      { id: 'blocage', label: 'Description du blocage ou comportement observé', type: 'textarea', placeholder: 'Ex : l’apprenant refuse de faire l’exercice et dit que ça ne sert à rien...', required: true },
       { id: 'phase_evfc', label: 'Phase EVFC où le blocage survient', type: 'select', options: ['Écouter', 'Voir', 'Faire', 'Consolider', 'Hors séquence'], required: false },
       { id: 'profil', label: 'Profil apprenant (si connu)', type: 'text', placeholder: 'Ex: adulte 45 ans, technicien, en reconversion forcée', required: false }
     ],
@@ -2460,7 +2470,7 @@ function renderSkillPanel() {
   const selectedMaxTokens = getMaxTokensForSkill(skill.id);
   const tokenOptionsHTML = TOKEN_PRESETS.map(value =>
     `<option value="${value}" ${value === selectedMaxTokens ? 'selected' : ''}>${value.toLocaleString('fr-FR')} tokens</option>`
-  ).join('');
+  ).join('') + `<option value="${NO_MAX_TOKENS}" ${selectedMaxTokens === NO_MAX_TOKENS ? 'selected' : ''}>Pas de limite (max du modèle)</option>`;
   const selectedTemperature = getTemperatureForSkill(skill.id);
   const temperatureOptionsHTML = TEMPERATURE_PRESETS.map(p =>
     `<option value="${p.value}" ${p.value === selectedTemperature ? 'selected' : ''}>${p.label}</option>`
@@ -2741,14 +2751,30 @@ function prefillM3From(sourceId) {
 // PROMPT + TOKEN SETTINGS
 // ─────────────────────────────────────────────
 function getMaxTokensForSkill(skillId) {
-  return Number(maxTokensByModule[skillId] || DEFAULT_MAX_TOKENS_BY_MODULE[skillId] || 6000);
+  const stored = maxTokensByModule[skillId];
+  if (stored === NO_MAX_TOKENS) return NO_MAX_TOKENS;
+  const fallback = DEFAULT_MAX_TOKENS_BY_MODULE[skillId] ?? 6000;
+  if (stored === undefined || stored === null || stored === '') return fallback;
+  return Number(stored) || fallback;
+}
+
+function resolveMaxTokensForApi(skillId) {
+  const value = getMaxTokensForSkill(skillId);
+  if (value === NO_MAX_TOKENS) {
+    return MODEL_MAX_OUTPUT_TOKENS[selectedModel] || 64000;
+  }
+  return value;
 }
 
 function setMaxTokensForCurrentSkill(value) {
   if (!currentSkill) return;
-  const parsed = Number(value);
-  if (!TOKEN_PRESETS.includes(parsed)) return;
-  maxTokensByModule[currentSkill.id] = parsed;
+  if (value === NO_MAX_TOKENS) {
+    maxTokensByModule[currentSkill.id] = NO_MAX_TOKENS;
+  } else {
+    const parsed = Number(value);
+    if (!TOKEN_PRESETS.includes(parsed)) return;
+    maxTokensByModule[currentSkill.id] = parsed;
+  }
   safeSetLocalStorage(
     STORAGE_KEYS.maxTokensByModule,
     JSON.stringify(maxTokensByModule),
@@ -2828,7 +2854,9 @@ function buildPromptPreview(skill, inputs) {
     selectedModel,
     '',
     '## Longueur maximale',
-    `${getMaxTokensForSkill(skill.id)} tokens`,
+    getMaxTokensForSkill(skill.id) === NO_MAX_TOKENS
+      ? `Pas de limite (${resolveMaxTokensForApi(skill.id)} tokens — max du modèle ${selectedModel})`
+      : `${getMaxTokensForSkill(skill.id)} tokens`,
     '',
     '## Créativité',
     `temperature ${getTemperatureForSkill(skill.id)}`,
@@ -3004,7 +3032,7 @@ async function generate() {
 
   const userPrompt = buildUserPrompt(skill, inputs);
   const systemPrompt = buildSystemPrompt(skill);
-  const maxTokens = getMaxTokensForSkill(skill.id);
+  const maxTokens = resolveMaxTokensForApi(skill.id);
   const temperature = getTemperatureForSkill(skill.id);
 
   btn.classList.add('loading');
@@ -4470,7 +4498,7 @@ Chaque module propose des champs à remplir. Les champs marqués d'un **astéris
 
 #### Les paramètres de génération et le bouton « Copier le prompt »
 Juste avant le bouton de génération :
-- **Longueur maximale du livrable** : choisissez parmi 3 000 / 6 000 / 8 000 / 12 000 jetons. Augmentez cette valeur pour les scénarios longs ou les bibliothèques complètes ; réduisez-la pour des livrables courts et rapides.
+- **Longueur maximale du livrable** : choisissez parmi 6 000 / 8 000 / 12 000 / 18 000 / 24 000 jetons, ou « Pas de limite » pour utiliser le maximum autorisé par le modèle sélectionné. Augmentez cette valeur pour les scénarios longs ou les bibliothèques complètes ; réduisez-la pour des livrables courts et rapides. Utilisez « Pas de limite » si une génération est tronquée malgré un réglage élevé.
 - **Créativité du modèle** : choisissez la temperature du module. Une valeur basse cadre davantage la sortie ; une valeur haute favorise les variantes et la créativité.
 - **📋 Copier le prompt** : copie l'intégralité du prompt qui serait envoyé à l'IA (modèle, longueur, créativité, cadrage métier, vos champs) — utile pour le tester ailleurs ou le réutiliser sans consommer de jetons.
 
@@ -4625,7 +4653,7 @@ Bande bleue marine affichant les informations de contact et de version.
 | **Livrable** | Document produit par l'IA à l'issue d'une génération |
 | **Clé API** | Code d'accès personnel pour utiliser le service IA Claude (\`sk-ant-…\`) |
 | **Token** | Unité de mesure de l'IA (environ ¾ d'un mot) — chaque génération en consomme des milliers |
-| **max_tokens** | Limite de longueur du livrable généré, réglable par module (3 000 / 6 000 / 8 000 / 12 000) via le sélecteur « Longueur maximale du livrable ». Une valeur trop basse peut couper le résultat avant la fin |
+| **max_tokens** | Limite de longueur du livrable généré, réglable par module (6 000 / 8 000 / 12 000 / 18 000 / 24 000, ou « Pas de limite ») via le sélecteur « Longueur maximale du livrable ». Une valeur trop basse peut couper le résultat avant la fin |
 | **temperature** | Niveau de créativité du modèle, réglable par module. Plus la valeur est basse, plus la sortie est cadrée ; plus elle est haute, plus elle varie |
 | **Markdown** | Format de mise en forme textuelle (titres, listes, tableaux) |
 | **localStorage** | Espace de stockage dans votre navigateur — votre clé API y est enregistrée |

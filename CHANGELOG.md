@@ -8,6 +8,27 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 16 juin 2026 — Correctif placeholder M6, options M3 et calibrage tokens/temperature — Mis à jour avec Claude
+
+### 1. Correctif affichage tronqué dans la modale M6
+
+- Le placeholder du champ "Description du blocage ou comportement observé" contenait des guillemets droits `"..."` qui fermaient prématurément l'attribut HTML `placeholder="..."`, tronquant l'affichage de l'exemple
+- Remplacement par des guillemets ne cassant pas le HTML
+
+### 2. Module M3 — options du nombre de questions
+
+- Liste déroulante "Nombre de questions" : `5 / 8 / 10 / 12 / 15` → `5 / 10 / 15 / 20`
+
+### 3. Calibrage température/longueur par module d'après des tests de génération réels
+
+- Températures ajustées : M0 0.4→0.7, M2 0.7→0.5, M3 0.3→0.2, M4 0.8→0.5, M5 0.3→0.2
+- Paliers `TOKEN_PRESETS` étendus : 6 000 / 8 000 / 12 000 / 18 000 / 24 000
+- Défauts `DEFAULT_MAX_TOKENS_BY_MODULE` relevés avec marge sur les tokens de sortie mesurés : INTRO/M0/M1 → 12 000, M3 → 18 000, M4/M5/M6 → 8 000
+- Nouvelle option **"Pas de limite (max du modèle)"** dans le sélecteur de longueur, résolue dynamiquement au moment de la génération vers le plafond réel du modèle sélectionné (64 000 tokens pour Sonnet 4.6/Haiku 4.5, 128 000 pour Opus 4.8)
+- M2, dont une génération avait été tronquée même à 24 000 tokens, utilise désormais cette option par défaut
+
+---
+
 ## Session 16 juin 2026 — Modèle affiché sur le livrable et révision des paliers de longueur — Mis à jour avec Claude
 
 ### 1. Mention du modèle Claude utilisé sous le titre du livrable
