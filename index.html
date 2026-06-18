@@ -619,6 +619,14 @@
     font-size: 11px;
     color: var(--text-muted);
     opacity: 0.75;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+
+  .result-usage-hint {
+    opacity: 0.85;
   }
 
   @keyframes pulse {
@@ -1818,6 +1826,12 @@ const MODEL_COLORS = Object.fromEntries(
 const MODEL_LABELS = Object.fromEntries(
   Object.entries(MODEL_CATALOG).map(([id, model]) => [id, model.label])
 );
+const USD_TO_EUR_ESTIMATE = 0.92;
+const MODEL_TOKEN_PRICING_USD_PER_MTOK = {
+  [MODEL_IDS.haiku45]:  { input: 1, output: 5 },
+  [MODEL_IDS.sonnet46]: { input: 3, output: 15 },
+  [MODEL_IDS.opus48]:   { input: 15, output: 75 },
+};
 
 const DEFAULT_MODEL_ID = Object.keys(MODEL_CATALOG).find(id => MODEL_CATALOG[id].default) || MODEL_IDS.sonnet46;
 const NO_MAX_TOKENS = 'nomax';
@@ -1901,6 +1915,66 @@ function parseStoredJson(key, fallback) {
     showStorageWarning('Donnée locale illisible. Elle sera ignorée pour cette session.');
     return fallback;
   }
+}
+
+function normalizeResultMeta(entry) {
+  if (!entry) return null;
+  if (typeof entry === 'string') return { model: entry };
+  if (typeof entry === 'object' && entry.model) return entry;
+  return null;
+}
+
+function getUsageTotalTokens(usage) {
+  if (!usage || typeof usage !== 'object') return 0;
+  return Object.entries(usage)
+    .filter(([key, value]) => key.endsWith('_tokens') && Number.isFinite(value))
+    .reduce((total, [, value]) => total + value, 0);
+}
+
+function estimateCostEur(modelId, usage) {
+  const pricing = MODEL_TOKEN_PRICING_USD_PER_MTOK[modelId];
+  if (!pricing || !usage) return null;
+  const inputTokens = Number(usage.input_tokens) || 0;
+  const outputTokens = Number(usage.output_tokens) || 0;
+  const costUsd = ((inputTokens * pricing.input) + (outputTokens * pricing.output)) / 1_000_000;
+  return costUsd * USD_TO_EUR_ESTIMATE;
+}
+
+function buildResultMeta(modelId, usage) {
+  const totalTokens = getUsageTotalTokens(usage);
+  const costEur = estimateCostEur(modelId, usage);
+  return {
+    model: modelId,
+    usage: usage || null,
+    totalTokens: totalTokens || null,
+    costEur: Number.isFinite(costEur) ? costEur : null,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+function formatTokenCount(tokens) {
+  if (!Number.isFinite(tokens) || tokens <= 0) return '';
+  return `${Math.round(tokens).toLocaleString('fr-FR')} tokens`;
+}
+
+function formatCostEur(cost) {
+  if (!Number.isFinite(cost)) return '';
+  const fractionDigits = cost < 0.01 ? 4 : 2;
+  return `${cost.toLocaleString('fr-FR', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  })} €`;
+}
+
+function buildUsageHintHTML(meta) {
+  if (!meta) return '';
+  const tokenText = formatTokenCount(meta.totalTokens || getUsageTotalTokens(meta.usage));
+  const costText = formatCostEur(meta.costEur);
+  if (!tokenText && !costText) return '';
+  const parts = [];
+  if (tokenText) parts.push(tokenText);
+  if (costText) parts.push(`coût estimé ${costText}`);
+  return `<span class="result-usage-hint">· ${parts.join(' · ')}</span>`;
 }
 
 function getModelDescription(modelId) {
@@ -2159,7 +2233,7 @@ let isDark = false;
 let navHistory = [];      // stack of skill ids visited
 let activeChain = [];     // current chain being navigated
 let resultCache = {};     // { skillId: lastGeneratedText }
-let resultModelByModule = parseStoredJson(STORAGE_KEYS.resultModelByModule, {}); // { skillId: modelId }
+let resultModelByModule = parseStoredJson(STORAGE_KEYS.resultModelByModule, {}); // { skillId: modelId | generationMeta }
 let maxTokensByModule = parseStoredJson(STORAGE_KEYS.maxTokensByModule, {});
 let temperatureByModule = parseStoredJson(STORAGE_KEYS.temperatureByModule, {});
 
@@ -3107,7 +3181,7 @@ async function generate() {
     const text = data.content?.find(b => b.type === 'text')?.text || '';
     currentResult = text;
     resultCache[skill.id] = text;
-    resultModelByModule[skill.id] = selectedModel;
+    resultModelByModule[skill.id] = buildResultMeta(selectedModel, data.usage);
     safeSetLocalStorage(
       STORAGE_KEYS.resultModelByModule,
       JSON.stringify(resultModelByModule)
@@ -3194,9 +3268,10 @@ function renderResult(text, skill) {
     : `Livrable — ${skill.module} · ${styleEVFC(skill.name)}`;
 
   // Mention discrète du modèle Claude utilisé pour cette génération
-  const usedModel = resultModelByModule[skill.id];
+  const resultMeta = normalizeResultMeta(resultModelByModule[skill.id]);
+  const usedModel = resultMeta?.model;
   const usedModelHTML = usedModel
-    ? `<div class="result-model-hint">Généré avec ${MODEL_LABELS[usedModel] || usedModel}</div>`
+    ? `<div class="result-model-hint">Généré avec ${MODEL_LABELS[usedModel] || usedModel} ${buildUsageHintHTML(resultMeta)}</div>`
     : '';
 
   resultZone.innerHTML = `
