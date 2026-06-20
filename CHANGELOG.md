@@ -8,6 +8,57 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 20 juin 2026 — Correctifs chaînage EVFC, préchargements et M3 — Mis à jour avec Codex
+
+### 1. Module M3 — fiabilisation du préchargement depuis M1
+
+- Correction de l'extraction M1 → M3 : le champ "Compétence / Contenu évalué" ne récupère plus la formule générique `sera capable de :`
+- Ajout d'un nettoyage dédié des objectifs opérationnels pour récupérer la vraie phrase d'action située après cette amorce
+- Priorité renforcée aux champs structurés du livrable M1 : `Compétence cible`, objectif opérationnel et phrase d'action observable
+
+### 2. Module M3 — Google Sheets toujours nommé `QCM`
+
+- Ajout d'une règle technique obligatoire dans le prompt M3 : le Google Sheets source doit contenir une feuille nommée exactement `QCM`
+- Le script `buildFormFromSheet()` doit utiliser `getSheetByName('QCM')`
+- Interdiction explicite des variantes de nom d'onglet comme `Questions`, `Quiz`, titre du module ou onglet actif
+- Ajout d'une erreur claire attendue si la feuille `QCM` est absente
+
+### 3. Alertes visibles avant copie du CSV et du script Apps Script
+
+- Ajout d'un bandeau visible dans les livrables M3 rappelant de créer une feuille Google Sheets nommée `QCM`
+- Ajout d'alertes ciblées juste avant les blocs de code détectés comme CSV ou Apps Script
+- Les alertes apparaissent avant l'action de copie afin d'éviter les erreurs de collage ou d'exécution
+
+### 4. Rubrique `📌 Enchaînement EVFC` dans les livrables
+
+- Ajout d'une contrainte finale de génération pour les modules ayant une suite logique : les livrables doivent proposer une rubrique `📌 Enchaînement EVFC`
+- Les propositions utilisent uniquement les noms utilisateur des modules (`M4 — Scénarios FAIRE`, `M5 — Grilles Critériées`, etc.)
+- Suppression demandée des noms techniques de skills dans cette rubrique, par exemple `evfc-faire-scenario-generator`
+
+### 5. Carte "Étape suivante recommandée" alignée sur le livrable
+
+- La carte post-génération lit désormais les modules cités dans la rubrique `📌 Enchaînement EVFC`
+- Si le livrable propose plusieurs modules, plusieurs boutons `Continuer → Module` sont affichés
+- Un fallback sur `skill.chain` est conservé si la rubrique n'est pas détectée
+
+### 6. Conservation des données utiles pour les modules proposés
+
+- Ajout d'un cache de préchargement `evfc_handoff_cache` en `localStorage`
+- Les champs utiles sont préparés pour les modules suivants proposés : compétence, contexte, phase EVFC, scénario, blocage ou objectif d'automatisation selon le module cible
+- Les champs déjà saisis par l'utilisateur ne sont pas écrasés
+- Ajout de notifications visibles :
+  - après génération : préchargement disponible pour les modules concernés
+  - à l'ouverture du module cible : données utiles préchargées depuis le module source
+- Ajout d'un bandeau dans le formulaire indiquant qu'un préchargement est disponible
+
+### 7. Chaînage M3 → M4
+
+- Correction du préchargement du champ "Contexte professionnel" de M4 depuis M3
+- Si le livrable M3 ne contient pas de contexte explicite, l'application génère un contexte par défaut exploitable pour construire la mise en situation FAIRE
+- Le contexte synthétisé rappelle que M4 doit transformer les acquis vérifiés par le QCM en tâche terrain observable
+
+---
+
 ## Session 16 juin 2026 — Bouton "Vider les livrables" — Mis à jour avec Claude
 
 ### 1. Nouveau bouton dans l'en-tête : 🗑️ Vider les livrables

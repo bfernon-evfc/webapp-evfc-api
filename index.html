@@ -748,6 +748,33 @@
   .result-body pre:hover .copy-pre-btn { opacity: 1; }
   .copy-pre-btn.copied { background: #059669; }
 
+  .m3-copy-alert {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-left: 4px solid #f97316;
+    border-radius: 7px;
+    color: #7c2d12;
+    font-size: 13px;
+    line-height: 1.45;
+    padding: 10px 12px;
+    margin: 14px 0 8px;
+  }
+  .m3-copy-alert strong { color: #9a3412; }
+  .m3-copy-alert code {
+    background: rgba(249, 115, 22, 0.12);
+    color: #7c2d12;
+  }
+  [data-theme="dark"] .m3-copy-alert {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: rgba(251, 146, 60, 0.45);
+    color: #fed7aa;
+  }
+  [data-theme="dark"] .m3-copy-alert strong,
+  [data-theme="dark"] .m3-copy-alert code { color: #ffedd5; }
+
   /* ── Lettres EVFC colorées ─────────────────────────────── */
   .evfc-e { color: #0284c7; font-weight: 700; }
   .evfc-v { color: #16a34a; font-weight: 700; }
@@ -1103,6 +1130,14 @@
 
   .next-step-text strong { color: var(--navy); }
   [data-theme="dark"] .next-step-text strong { color: #7eb3f7; }
+
+  .next-step-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 
   .btn-next-step {
     background: var(--navy);
@@ -1798,6 +1833,7 @@ const STORAGE_KEYS = {
   model: 'evfc_model',
   resultCache: 'evfc_result_cache',
   resultModelByModule: 'evfc_result_model_by_module',
+  handoffCache: 'evfc_handoff_cache',
   maxTokensByModule: 'evfc_max_tokens_by_module',
   temperatureByModule: 'evfc_temperature_by_module',
   sidebarCollapsed: 'sidebarCollapsed',
@@ -2139,6 +2175,7 @@ Génère un QCM complet en Markdown avec :
 1. Tableau des questions avec : N°, Question, Type, Réponse correcte, Distracteurs, Feedback, Niveau Bloom
 2. CSV au format 9 colonnes pour Google Forms : Numéro,Question,TypeQuestion,Réponse1,Réponse2,Réponse3,Réponse4,BonneRéponse,Feedback
 3. Script Google Apps Script buildFormFromSheet() complet et commenté
+Règle technique obligatoire : le Google Sheets doit contenir une feuille nommée exactement "QCM". Le script buildFormFromSheet() doit toujours lire cette feuille avec getSheetByName('QCM') et afficher une erreur claire si elle est absente. Ne jamais utiliser un autre nom de feuille, le nom de l'onglet actif, ni une variante comme "Questions", "Quiz" ou le titre du module.
 Aligne chaque question sur les objectifs EVFC des phases concernées. Assure la cohérence pédagogique.`
   },
   {
@@ -2234,6 +2271,7 @@ let navHistory = [];      // stack of skill ids visited
 let activeChain = [];     // current chain being navigated
 let resultCache = {};     // { skillId: lastGeneratedText }
 let resultModelByModule = parseStoredJson(STORAGE_KEYS.resultModelByModule, {}); // { skillId: modelId | generationMeta }
+let handoffCache = parseStoredJson(STORAGE_KEYS.handoffCache, {}); // { targetSkillId: { sourceId, fields, createdAt } }
 let maxTokensByModule = parseStoredJson(STORAGE_KEYS.maxTokensByModule, {});
 let temperatureByModule = parseStoredJson(STORAGE_KEYS.temperatureByModule, {});
 
@@ -2274,8 +2312,10 @@ function confirmClearGeneratedResults() {
 function clearGeneratedResults() {
   resultCache = {};
   resultModelByModule = {};
+  handoffCache = {};
   safeRemoveLocalStorage(STORAGE_KEYS.resultCache);
   safeRemoveLocalStorage(STORAGE_KEYS.resultModelByModule);
+  safeRemoveLocalStorage(STORAGE_KEYS.handoffCache);
   if (currentSkill) renderSkillPanel();
   showToast('🗑️ Livrables générés effacés. Clé API et préférences conservées.');
 }
@@ -2565,6 +2605,17 @@ function renderSkillPanel() {
   const temperatureOptionsHTML = TEMPERATURE_PRESETS.map(p =>
     `<option value="${p.value}" ${p.value === selectedTemperature ? 'selected' : ''}>${p.label}</option>`
   ).join('');
+  const handoff = handoffCache[skill.id];
+  const handoffContextHTML = handoff ? `
+    <div style="
+      margin-bottom: 16px; padding: 12px 14px; border-radius: 10px;
+      border: 1.5px solid ${skill.color}55; background: ${skill.color}10;
+      color: var(--text); font-size: 13px;
+    ">
+      <strong style="color:${skill.color}">🔁 Données de préchargement disponibles</strong><br>
+      Les champs pertinents de ce module peuvent être préchargés depuis <strong>${handoff.sourceModule} — ${handoff.sourceName}</strong>. Les champs déjà saisis ne sont pas remplacés.
+    </div>
+  ` : '';
 
   // ── M5 : bloc contextuel M4 ──
   const hasCachedM4 = !!resultCache['m4'];
@@ -2699,6 +2750,7 @@ function renderSkillPanel() {
     </div>
 
     ${chainHTML}
+    ${handoffContextHTML}
     ${m5ContextHTML}
     ${m3ContextHTML}
     ${modelRecoBanner(skill.id)}
@@ -2739,6 +2791,8 @@ function renderSkillPanel() {
     <div id="result-zone"></div>
   `;
 
+  applyHandoffToCurrentPanel(skill);
+
   // ── M5 : pré-remplir le champ compétence depuis le cache M4 ──
   if (skill.id === 'm5' && hasCachedM4) {
     const compField = document.getElementById('field_competence');
@@ -2767,20 +2821,240 @@ function extractCompetenceFromCache(skillId, maxLen = 600) {
     .slice(0, maxLen);
 }
 
+function stripMarkdownInline(value) {
+  return String(value || '')
+    .replace(/\*\*/g, '')
+    .replace(/^>\s*/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function cleanCompetenceCandidate(value) {
+  return stripMarkdownInline(value)
+    .replace(/^(?:à\s+l['’]issue[^:]*:\s*)/i, '')
+    .replace(/^(?:l['’]apprenant\s+)?(?:sera|seront|être|etre)\s+capable[s]?\s+de\s*:?\s*/i, '')
+    .replace(/^[:\-–—\s]+/, '')
+    .trim();
+}
+
+function extractCapableObjective(text) {
+  const lines = String(text || '').split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    if (!/(?:sera|seront|être|etre)\s+capable[s]?\s+de/i.test(lines[i])) continue;
+
+    const sameLine = cleanCompetenceCandidate(lines[i]);
+    if (sameLine.length >= 10 && !/^(?:sera|seront|être|etre)\s+capable/i.test(sameLine)) return sameLine;
+
+    for (let j = i + 1; j < Math.min(lines.length, i + 5); j++) {
+      const nextLine = cleanCompetenceCandidate(lines[j]);
+      if (nextLine.length >= 10) return nextLine;
+    }
+  }
+  return '';
+}
+
+function extractM1CompetenceForM3(text) {
+  const tableMatch = text.match(/\|\s*(?:\*\*)?comp[ée]tence\s+cible(?:\*\*)?\s*\|\s*([^|\n]{10,})\|/i);
+  if (tableMatch) return cleanCompetenceCandidate(tableMatch[1]).slice(0, 300);
+
+  const directMatch = text.match(/(?:comp[ée]tence\s+cible|comp[ée]tence\s+observable\s+cible)[^:\n|]*[:|]\s*([^\n|]{10,})/i);
+  if (directMatch) return cleanCompetenceCandidate(directMatch[1]).slice(0, 300);
+
+  const capableObjective = extractCapableObjective(text);
+  if (capableObjective) return capableObjective.slice(0, 300);
+
+  const operationalBlock = text.match(/objectif\s+op[ée]rationnel[\s\S]{0,500}/i);
+  if (operationalBlock) {
+    const blockMatch = operationalBlock[0].match(/>\s*([^>\n]*(?:installer|configurer|préparer|preparer|réaliser|realiser|diagnostiquer|créer|creer|produire|mettre|utiliser)[^\n]{10,})/i);
+    if (blockMatch) return cleanCompetenceCandidate(blockMatch[1]).slice(0, 300);
+  }
+
+  return '';
+}
+
+function extractShortField(text, patterns, maxLen = 300) {
+  const raw = String(text || '');
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match) return cleanCompetenceCandidate(match[1] || match[0]).slice(0, maxLen);
+  }
+  return '';
+}
+
+function extractHandoffCompetence(sourceId, sourceText, sourceInputs = {}, maxLen = 300) {
+  if (sourceInputs.competence) return stripMarkdownInline(sourceInputs.competence).slice(0, maxLen);
+  if (sourceInputs.referentiel) return stripMarkdownInline(sourceInputs.referentiel).slice(0, maxLen);
+  if (sourceInputs.domaine) return stripMarkdownInline(sourceInputs.domaine).slice(0, maxLen);
+  if (sourceInputs.type_formation) return stripMarkdownInline(sourceInputs.type_formation).slice(0, maxLen);
+  if (sourceInputs.objectif) return stripMarkdownInline(sourceInputs.objectif).slice(0, maxLen);
+  if (sourceId === 'm1') return extractM1CompetenceForM3(sourceText).slice(0, maxLen);
+
+  return extractShortField(sourceText, [
+    /\|\s*(?:\*\*)?comp[ée]tence[^|]*(?:\*\*)?\s*\|\s*([^|\n]{10,})\|/i,
+    /comp[ée]tence[^:\n]*:\s*([^\n]{10,})/i,
+    /objectif\s+op[ée]rationnel[^:\n]*:\s*([^\n]{10,})/i,
+    /(?:sera|seront)\s+capable[s]?\s+de\s*:?\s*(?:\n\s*>?\s*)?([^\n]{10,})/i
+  ], maxLen) || extractCompetenceFromCache(sourceId, maxLen);
+}
+
+function extractHandoffContext(sourceText, sourceInputs = {}, maxLen = 300) {
+  if (sourceInputs.contexte) return stripMarkdownInline(sourceInputs.contexte).slice(0, maxLen);
+  if (sourceInputs.secteur) return `Secteur : ${stripMarkdownInline(sourceInputs.secteur)}`.slice(0, maxLen);
+  if (sourceInputs.public) return `Public : ${stripMarkdownInline(sourceInputs.public)}`.slice(0, maxLen);
+  return extractShortField(sourceText, [
+    /contexte[^:\n]*:\s*([^\n]{10,})/i,
+    /public[^:\n]*:\s*([^\n]{5,})/i,
+    /entreprise[^:\n]*:\s*([^\n]{5,})/i
+  ], maxLen);
+}
+
+function buildDefaultHandoffContext(sourceId, targetId, competence, sourceInputs = {}, maxLen = 320) {
+  if (sourceId === 'm3' && targetId === 'm4') {
+    const phase = sourceInputs.phase ? ` Phase EVFC évaluée : ${stripMarkdownInline(sourceInputs.phase)}.` : '';
+    const topic = competence ? ` sur "${stripMarkdownInline(competence)}"` : '';
+    return `Mise en situation professionnelle à construire à partir du QCM M3${topic}.${phase} Transformer les acquis vérifiés en tâche terrain observable pour la phase FAIRE.`.slice(0, maxLen);
+  }
+
+  if (targetId === 'm4' && competence) {
+    return `Contexte professionnel à préciser : transformer "${stripMarkdownInline(competence)}" en situation terrain réaliste et observable pour la phase FAIRE.`.slice(0, maxLen);
+  }
+
+  return '';
+}
+
+function extractHandoffBlocage(sourceText, sourceInputs = {}, maxLen = 700) {
+  if (sourceInputs.blocage) return stripMarkdownInline(sourceInputs.blocage).slice(0, maxLen);
+  return extractShortField(sourceText, [
+    /blocage[^:\n]*:\s*([^\n]{10,})/i,
+    /difficult[ée][^:\n]*:\s*([^\n]{10,})/i,
+    /point[s]? de vigilance[^:\n]*:\s*([^\n]{10,})/i,
+    /erreur[s]? probable[s]?[^:\n]*:\s*([^\n]{10,})/i
+  ], maxLen);
+}
+
+function buildHandoffFields(sourceId, targetId, sourceText, sourceInputs = {}) {
+  const fields = {};
+  const competence = extractHandoffCompetence(sourceId, sourceText, sourceInputs, targetId === 'm5' ? 900 : 320);
+  const contexte = extractHandoffContext(sourceText, sourceInputs, 320);
+
+  if (targetId === 'm1') {
+    if (competence) fields.competence = competence;
+    if (sourceInputs.public) fields.public = stripMarkdownInline(sourceInputs.public);
+    if (sourceInputs.duree_totale) fields.duree = stripMarkdownInline(sourceInputs.duree_totale);
+    if (sourceInputs.modalite) fields.modalite = sourceInputs.modalite;
+    if (contexte) fields.contexte = contexte;
+  }
+
+  if (targetId === 'm3') {
+    const extracted = sourceId ? extractForM3(sourceId) : {};
+    fields.competence = extracted.competence || competence;
+    fields.phase = extracted.phase || sourceInputs.phase || 'Écouter + Voir';
+  }
+
+  if (targetId === 'm4') {
+    if (competence) fields.competence = competence;
+    fields.contexte = contexte || buildDefaultHandoffContext(sourceId, targetId, competence, sourceInputs, 320);
+  }
+
+  if (targetId === 'm5') {
+    if (sourceId === 'm4') fields.competence = extractCompetenceFromCache('m4', 900);
+    else if (competence) fields.competence = competence;
+  }
+
+  if (targetId === 'm6') {
+    const blocage = extractHandoffBlocage(sourceText, sourceInputs, 700);
+    fields.blocage = blocage || `À partir du livrable ${sourceId.toUpperCase()}, identifier une difficulté apprenant ou un point de remédiation à traiter.`;
+    if (sourceInputs.phase || /faire/i.test(sourceText)) fields.phase_evfc = sourceInputs.phase || 'Faire';
+    if (sourceInputs.public) fields.profil = stripMarkdownInline(sourceInputs.public);
+  }
+
+  if (targetId === 'm7') {
+    fields.objectif = `Automatiser l'exploitation ou la diffusion du livrable ${sourceId.toUpperCase()}.`;
+    fields.outils = /Google Forms|Apps Script|QCM|CSV/i.test(sourceText) ? 'Google Sheets, Google Forms, Apps Script' : '';
+  }
+
+  return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== ''));
+}
+
+function persistHandoffCache() {
+  safeSetLocalStorage(
+    STORAGE_KEYS.handoffCache,
+    JSON.stringify(handoffCache),
+    'Cache local plein ou indisponible : les préchargements resteront disponibles seulement dans cette session.'
+  );
+}
+
+function storeHandoffsForResult(sourceSkill, sourceText, sourceInputs = {}) {
+  const targetIds = resolveNextSkillsForResult(sourceText, sourceSkill).map(s => s.id);
+  const prepared = [];
+
+  targetIds.forEach(targetId => {
+    if (targetId === sourceSkill.id) return;
+    const fields = buildHandoffFields(sourceSkill.id, targetId, sourceText, sourceInputs);
+    if (Object.keys(fields).length === 0) return;
+
+    handoffCache[targetId] = {
+      sourceId: sourceSkill.id,
+      sourceModule: sourceSkill.module,
+      sourceName: sourceSkill.name,
+      targetId,
+      fields,
+      createdAt: new Date().toISOString()
+    };
+    prepared.push(targetId);
+  });
+
+  if (prepared.length) persistHandoffCache();
+  return prepared;
+}
+
+function applyHandoffToCurrentPanel(skill) {
+  const handoff = handoffCache[skill.id];
+  if (!handoff || !handoff.fields) return false;
+
+  let applied = 0;
+  Object.entries(handoff.fields).forEach(([fieldId, value]) => {
+    const el = document.getElementById(`field_${fieldId}`);
+    if (!el || String(el.value || '').trim()) return;
+    if (el.tagName === 'SELECT') {
+      const options = Array.from(el.options).map(o => o.value);
+      const normalizedValue = String(value || '').toLowerCase();
+      const match = options.find(o => o === value)
+        || options.find(o => normalizedValue.includes(o.toLowerCase()) || o.toLowerCase().includes(normalizedValue));
+      if (!match) return;
+      el.value = match;
+    } else {
+      el.value = value;
+    }
+    el.style.borderColor = skill.color;
+    el.title = `Préchargé depuis ${handoff.sourceModule}`;
+    applied += 1;
+  });
+
+  if (!applied) return false;
+  const sourceLabel = `${handoff.sourceModule} — ${handoff.sourceName}`;
+  showToast(`✅ Données utiles préchargées depuis ${sourceLabel}`, 'success');
+  return true;
+}
+
 // M3-specific: smarter extraction per source
 function extractForM3(sourceId) {
   const text = resultCache[sourceId] || '';
   if (!text) return { competence: '', phase: null };
 
-  // Try to extract the first observable objective line
-  const objMatch = text.match(/objectif[^:\n]*:\s*([^\n]{10,})/i)
-    || text.match(/compétence[^:\n]*:\s*([^\n]{10,})/i)
-    || text.match(/être capable[^\n]{5,}/i)
-    || text.match(/savoir[- ]faire[^:\n]*:\s*([^\n]{10,})/i);
+  const m1Competence = sourceId === 'm1' ? extractM1CompetenceForM3(text) : '';
 
-  let competence = objMatch
-    ? (objMatch[1] || objMatch[0]).replace(/\*\*/g, '').trim().slice(0, 300)
-    : extractCompetenceFromCache(sourceId, 300);
+  // Try to extract the first observable objective line, excluding EVFC phase goals.
+  const objMatch = !m1Competence && (
+    text.match(/comp[ée]tence[^:\n]*:\s*([^\n]{10,})/i)
+    || text.match(/objectif(?!\s+de\s+la\s+phase)[^:\n]*:\s*([^\n]{10,})/i)
+    || text.match(/(?:être|etre|sera)\s+capable[^\n]{5,}/i)
+    || text.match(/savoir[- ]faire[^:\n]*:\s*([^\n]{10,})/i)
+  );
+
+  let competence = m1Competence || (objMatch
+    ? cleanCompetenceCandidate(objMatch[1] || objMatch[0]).slice(0, 300)
+    : extractCompetenceFromCache(sourceId, 300));
 
   // Try to detect phase hint from M1 (Écouter / Voir sections)
   let phase = null;
@@ -2920,9 +3194,41 @@ function getSkillContextForModule(skillId) {
   return EVFC_MODULE_SKILLS[skillId] || null;
 }
 
+function buildEvfcChainInstruction(skill) {
+  if (!skill || !Array.isArray(skill.chain) || skill.chain.length === 0) return [];
+
+  const nextModules = skill.chain
+    .map(id => SKILLS.find(s => s.id === id))
+    .filter(Boolean)
+    .map(s => `- ${s.module} — ${s.name} : proposer à l'utilisateur de passer à ce module si ce livrable correspond à son besoin suivant.`);
+
+  if (nextModules.length === 0) return [];
+
+  return [
+    '',
+    '---',
+    'CONTRAINTE FINALE — ENCHAÎNEMENT EVFC :',
+    'Ajoute toujours en fin de livrable une rubrique exactement intitulée "📌 Enchaînement EVFC".',
+    'Dans cette rubrique, propose le ou les modules suivants de l\'application selon le chaînage logique EVFC :',
+    ...nextModules,
+    'Ne mentionne jamais les noms techniques de skills dans cette rubrique, par exemple pas de nom comme evfc-faire-scenario-generator, qcm-evfc-validator ou grilles-criteriees.',
+    'Pour toute proposition de passage au module suivant dans le livrable final, utilise uniquement les intitulés utilisateur des modules, jamais les noms techniques de skills.',
+    'Formule l’appel à l’action côté utilisateur, par exemple : "Module M4 — Scénarios FAIRE : continuer avec ce module pour transformer la séquence en mise en situation pratique."'
+  ];
+}
+
 function buildSystemPrompt(skill) {
   const skillContext = getSkillContextForModule(skill.id);
   if (!skillContext) return skill.systemPrompt;
+  const finalTechnicalRules = skill.id === 'm3' ? [
+    '',
+    '---',
+    'CONTRAINTE TECHNIQUE FINALE M3 :',
+    'Pour buildFormFromSheet(), la feuille Google Sheets source doit toujours être nommée exactement "QCM".',
+    'Le script doit utiliser SpreadsheetApp.getActiveSpreadsheet().getSheetByName(\'QCM\') et arrêter clairement l\'exécution avec un message explicite si cette feuille est absente.',
+    'Ne jamais utiliser getActiveSheet(), ni un nom de feuille dérivé du titre, ni un autre nom comme "Questions" ou "Quiz".'
+  ] : [];
+  const finalChainRules = buildEvfcChainInstruction(skill);
   return [
     skill.systemPrompt.trim(),
     '',
@@ -2933,7 +3239,9 @@ function buildSystemPrompt(skill) {
     '',
     'Instructions : applique strictement le skill ci-dessous pour cadrer la génération, le format du livrable, les contraintes pédagogiques, les interdictions et les vérifications finales.',
     '',
-    skillContext.content.trim()
+    skillContext.content.trim(),
+    ...finalTechnicalRules,
+    ...finalChainRules
   ].join('\n');
 }
 
@@ -3192,8 +3500,16 @@ async function generate() {
       'Cache local plein ou indisponible : le livrable reste visible, mais ne sera pas restauré au prochain lancement.'
     );
 
+    const preparedHandoffs = storeHandoffsForResult(skill, text, inputs);
     renderResult(text, skill);
     showToast('✅ Livrable généré !', 'success');
+    if (preparedHandoffs.length) {
+      const labels = preparedHandoffs
+        .map(id => SKILLS.find(s => s.id === id)?.module)
+        .filter(Boolean)
+        .join(', ');
+      showToast(`🔁 Préchargement disponible pour ${labels}`, 'success');
+    }
   } catch (err) {
     resultZone.innerHTML = `
       <div class="result-zone" style="padding:30px; text-align:center">
@@ -3219,25 +3535,54 @@ function restoreCachedResult() {
   renderResult(cached, currentSkill);
 }
 
+function extractEvfcChainModuleIds(text) {
+  const raw = String(text || '');
+  const headingMatch = raw.match(/(?:^|\n)#{1,6}\s*📌?\s*Encha[îi]nement EVFC\s*\n([\s\S]*?)(?=\n#{1,6}\s+|\n---|\s*$)/i)
+    || raw.match(/(?:^|\n)📌?\s*Encha[îi]nement EVFC\s*\n([\s\S]*?)(?=\n#{1,6}\s+|\n---|\s*$)/i);
+  if (!headingMatch) return [];
+
+  const section = headingMatch[1] || '';
+  const ids = [];
+  const moduleRegex = /\bM([0-7])\b/g;
+  let match;
+  while ((match = moduleRegex.exec(section)) !== null) {
+    const id = `m${match[1]}`;
+    if (SKILLS.some(s => s.id === id) && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+function resolveNextSkillsForResult(text, skill) {
+  const idsFromLivrable = extractEvfcChainModuleIds(text);
+  const ids = idsFromLivrable.length ? idsFromLivrable : (skill.chain || []);
+  return ids
+    .map(id => SKILLS.find(s => s.id === id))
+    .filter(Boolean);
+}
+
 function renderResult(text, skill) {
   const resultZone = document.getElementById('result-zone');
 
-  const nextSkillId = skill.chain[0];
-  const nextSkill = nextSkillId ? SKILLS.find(s => s.id === nextSkillId) : null;
+  const nextSkills = resolveNextSkillsForResult(text, skill);
 
-  const nextStepHTML = nextSkill ? `
+  const nextStepHTML = nextSkills.length ? `
     <div class="next-step-block">
       <div class="next-step-text">
-        Étape suivante recommandée : <strong>${nextSkill.module} — ${nextSkill.name}</strong>
+        Étape suivante recommandée : <strong>${nextSkills.length === 1 ? `${nextSkills[0].module} — ${nextSkills[0].name}` : 'choisir le module adapté au chaînage EVFC'}</strong>
       </div>
-      <button class="btn-next-step" onclick="selectSkill('${nextSkillId}')">
-        Continuer → ${nextSkill.shortName}
-      </button>
+      <div class="next-step-actions">
+        ${nextSkills.map(nextSkill => `
+          <button class="btn-next-step" onclick="selectSkill('${nextSkill.id}')">
+            Continuer → ${nextSkill.module} · ${nextSkill.shortName}
+          </button>
+        `).join('')}
+      </div>
     </div>
   ` : '';
 
   const isM5 = skill.id === 'm5';
   const isM2 = skill.id === 'm2';
+  const isM3 = skill.id === 'm3';
 
   const skillContext = getSkillContextForModule(skill.id);
   const packSkills = skillContext ? [{ name: skillContext.name, color: skill.color }] : [];
@@ -3253,6 +3598,15 @@ function renderResult(text, skill) {
       <div>
         <strong>Ces prompts sont conçus pour <span class="claude-highlight">Claude</span> + plugin Pack EVFC-FPA</strong>
         Certains ne sont pas utilisables directement dans cette application. Copie-colle chaque prompt dans <span class="claude-highlight">Claude</span> Desktop ou <span class="claude-highlight">claude.ai</span> avec le plugin <strong>Pack EVFC-FPA</strong> activé pour obtenir les meilleurs résultats.
+      </div>
+    </div>` : '';
+
+  const m3Banner = isM3 ? `
+    <div class="m3-copy-alert">
+      <span>⚠️</span>
+      <div>
+        <strong>Avant de copier le CSV ou le script Apps Script :</strong>
+        crée un Google Sheets avec une feuille nommée exactement <code>QCM</code>. Colle le CSV dans cet onglet, puis exécute le script qui doit lire <code>getSheetByName('QCM')</code>.
       </div>
     </div>` : '';
 
@@ -3295,6 +3649,7 @@ function renderResult(text, skill) {
       </div>
       ${usedModelHTML}
       ${m2Banner}
+      ${m3Banner}
       <div class="result-body" id="result-body">
         ${marked.parse(text)}
       </div>
@@ -3309,6 +3664,8 @@ function renderResult(text, skill) {
   // Ajoute un bouton "Copier" sur chaque bloc <pre> du livrable
   // + badge "Prompt Claude" sur les blocs M2
   document.querySelectorAll('#result-body pre').forEach(pre => {
+    const code = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+    if (skill.id === 'm3') insertM3CopyAlert(pre, code);
     if (isM2) {
       const badge = document.createElement('span');
       badge.className = 'prompt-claude-badge';
@@ -3320,7 +3677,6 @@ function renderResult(text, skill) {
     btn.textContent = '📋 Copier';
     btn.title = 'Copier ce prompt';
     btn.addEventListener('click', () => {
-      const code = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
       navigator.clipboard.writeText(code).then(() => {
         btn.textContent = '✅ Copié !';
         btn.classList.add('copied');
@@ -3332,6 +3688,25 @@ function renderResult(text, skill) {
 
   // Scroll to result
   resultZone.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function getM3CopyAlertType(code) {
+  const clean = String(code || '').trim();
+  if (/buildFormFromSheet\s*\(/i.test(clean) || /SpreadsheetApp|getSheetByName|FormApp/i.test(clean)) return 'script';
+  if (/Num[ée]ro\s*,\s*Question\s*,\s*TypeQuestion/i.test(clean)) return 'csv';
+  return null;
+}
+
+function insertM3CopyAlert(pre, code) {
+  const type = getM3CopyAlertType(code);
+  if (!type) return;
+
+  const alert = document.createElement('div');
+  alert.className = 'm3-copy-alert';
+  alert.innerHTML = type === 'csv'
+    ? `<span>⚠️</span><div><strong>Avant de copier le CSV :</strong> crée un Google Sheets avec un onglet nommé exactement <code>QCM</code>, puis colle le CSV dans cet onglet. Le script attend ce nom précis.</div>`
+    : `<span>⚠️</span><div><strong>Avant de copier le script :</strong> vérifie que le fichier Google Sheets contient bien une feuille nommée exactement <code>QCM</code>. Le script doit lire <code>getSheetByName('QCM')</code>.</div>`;
+  pre.parentNode.insertBefore(alert, pre);
 }
 
 // ─────────────────────────────────────────────
