@@ -8,6 +8,20 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 21 juin 2026 — Rubrique Charte méthodologique EVFC-Kolb — Mis à jour avec Codex
+
+### 1. Menu gauche — accès à la charte méthodologique
+
+- Ajout d'une carte **Charte méthodologique** dans le menu latéral gauche
+- Regroupement des cartes de documentation dans une catégorie **Référentiels**
+- La carte ouvre une rubrique dédiée à la méthode EVFC et à l'hybridation EVFC-Kolb
+- Intégration du contenu "L'Art de l'Ingénierie Pédagogique Émancipatrice" dans une modale avec sommaire interne
+- Mise en forme des matrices de correspondance et du guide de choix pour une lecture plus exploitable dans l'application
+- Ajout d'une carte **Guide ERA** avec badge personnalisé et rubrique dédiée au guide de régulation pédagogique
+- Intégration nettoyée du guide ERA : boucle Empathie-Résolution-Adhésion, voie du conflit, cas pratiques, bénéfices, limites et checklist FPA
+
+---
+
 ## Session 20 juin 2026 — Correctif M5 Forms grilles — Mis à jour avec Codex
 
 ### 1. Module M5 — scripts Forms alignés sur les bonnes grilles

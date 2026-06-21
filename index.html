@@ -34,6 +34,9 @@
     --badge-bg: #e8eeff;
     --badge-text: #002455;
     --input-bg: #f8faff;
+    --category-badge-bg: rgba(0, 36, 85, 0.09);
+    --category-badge-border: rgba(0, 36, 85, 0.22);
+    --category-badge-text: #002455;
     --shadow: 0 2px 12px rgba(0,36,85,0.08);
     --shadow-card: 0 4px 20px rgba(0,36,85,0.10);
     --tag-intro: #7c3aed;
@@ -63,6 +66,9 @@
     --badge-bg: #1f2d4a;
     --badge-text: #7eb3f7;
     --input-bg: #0d1117;
+    --category-badge-bg: rgba(126, 179, 247, 0.14);
+    --category-badge-border: rgba(126, 179, 247, 0.34);
+    --category-badge-text: #9cc8ff;
     --shadow: 0 2px 12px rgba(0,0,0,0.4);
     --shadow-card: 0 4px 20px rgba(0,0,0,0.5);
     --chain-bg: #1a1600;
@@ -204,10 +210,17 @@
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    padding: 8px 8px 4px;
-    margin-top: 4px;
+    letter-spacing: 0.7px;
+    color: var(--category-badge-text);
+    background: var(--category-badge-bg);
+    border: 1px solid var(--category-badge-border);
+    border-radius: 999px;
+    padding: 5px 10px;
+    margin: 10px 2px 6px;
+    width: fit-content;
+    max-width: calc(100% - 4px);
+    line-height: 1.2;
+    box-shadow: 0 1px 4px rgba(0,36,85,0.08);
   }
 
   .skill-card {
@@ -225,6 +238,19 @@
     background: var(--hover);
     border-color: var(--navy-light);
     transform: translateX(2px);
+  }
+
+  .method-card {
+    border-color: rgba(15, 76, 129, 0.35);
+    background: linear-gradient(135deg, rgba(15, 76, 129, 0.08), rgba(240, 50, 44, 0.06));
+  }
+
+  .method-card .skill-desc {
+    color: var(--text);
+  }
+
+  [data-theme="dark"] .method-card {
+    background: linear-gradient(135deg, rgba(126, 179, 247, 0.12), rgba(255, 105, 97, 0.08));
   }
 
   .skill-card.active {
@@ -256,6 +282,56 @@
     border-radius: 20px;
     color: white;
     flex-shrink: 0;
+  }
+
+  .evfc-color-badge {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid rgba(15, 76, 129, 0.28);
+    box-shadow: 0 1px 4px rgba(15, 76, 129, 0.12);
+    padding: 4px 8px;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+  }
+
+  .evfc-color-badge span {
+    line-height: 1;
+  }
+
+  .evfc-color-badge .evfc-e { color: #2563eb; }
+  .evfc-color-badge .evfc-v { color: #16a34a; }
+  .evfc-color-badge .evfc-f { color: #f97316; }
+  .evfc-color-badge .evfc-c { color: #7c3aed; }
+
+  [data-theme="dark"] .evfc-color-badge {
+    background: #f8fafc;
+    border-color: rgba(126, 179, 247, 0.55);
+    box-shadow: 0 1px 8px rgba(126, 179, 247, 0.18);
+  }
+
+  .era-color-badge {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid rgba(219, 39, 119, 0.28);
+    box-shadow: 0 1px 4px rgba(219, 39, 119, 0.14);
+    padding: 4px 8px;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+  }
+
+  .era-color-badge span { line-height: 1; }
+  .era-color-badge .era-e { color: #2563eb; }
+  .era-color-badge .era-r { color: #dc2626; }
+  .era-color-badge .era-a { color: #16a34a; }
+
+  [data-theme="dark"] .era-color-badge {
+    background: #f8fafc;
+    border-color: rgba(244, 114, 182, 0.55);
+    box-shadow: 0 1px 8px rgba(244, 114, 182, 0.18);
   }
 
   .skill-name {
@@ -902,6 +978,29 @@
   .welcome-screen {
     padding: 32px;
     max-width: 800px;
+  }
+
+  .welcome-logo-frame {
+    background: #ffffff;
+    border: 1px solid rgba(0, 36, 85, 0.12);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .welcome-logo-frame img {
+    height: 200px;
+    width: auto;
+    display: block;
+  }
+
+  [data-theme="dark"] .welcome-logo-frame {
+    border-color: rgba(126, 179, 247, 0.28);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
   }
 
   .welcome-slogan { display: flex; flex-direction: column; gap: 12px; }
@@ -2344,16 +2443,36 @@ function clearGeneratedResults() {
 // ─────────────────────────────────────────────
 function renderSidebar() {
   const sidebar = document.getElementById('sidebar');
-  sidebar.innerHTML = '<div class="sidebar-section-label">🧭 Point d\'entrée</div>';
+  sidebar.innerHTML = '<div class="sidebar-section-label">📚 Référentiels</div>';
+  sidebar.innerHTML += `
+    <div class="skill-card method-card" onclick="showMethodCharter()">
+      <div class="skill-header">
+        <span class="skill-badge evfc-color-badge" aria-label="EVFC">
+          <span class="evfc-e">E</span><span class="evfc-v">V</span><span class="evfc-f">F</span><span class="evfc-c">C</span>
+        </span>
+        <span class="skill-name">Charte méthodologique</span>
+      </div>
+      <div class="skill-desc">L'art de l'ingénierie pédagogique émancipatrice · Hybridation EVFC-Kolb</div>
+    </div>
+    <div class="skill-card method-card" onclick="showEraGuide()">
+      <div class="skill-header">
+        <span class="skill-badge era-color-badge" aria-label="ERA">
+          <span class="era-e">E</span><span class="era-r">R</span><span class="era-a">A</span>
+        </span>
+        <span class="skill-name">Guide ERA</span>
+      </div>
+      <div class="skill-desc">Régulation pédagogique pour adultes · Empathie, résolution, adhésion</div>
+    </div>
+  `;
 
   const sections = [
-    { label: '📚 Modules de formation', ids: ['intro', 'm0', 'm1', 'm2'] },
+    { label: '📚 Cadrage & conception', ids: ['intro', 'm0', 'm1', 'm2'] },
     { label: '📝 Évaluation & Pratique', ids: ['m3', 'm4', 'm5'] },
     { label: '🔧 Soutien & Automatisation', ids: ['m6', 'm7'] }
   ];
 
   sections.forEach((section, i) => {
-    if (i > 0) sidebar.innerHTML += `<div class="sidebar-section-label">${section.label}</div>`;
+    sidebar.innerHTML += `<div class="sidebar-section-label">${section.label}</div>`;
     section.ids.forEach(id => {
       const skill = SKILLS.find(s => s.id === id);
       if (!skill) return;
@@ -2380,7 +2499,9 @@ function renderWelcome() {
   panel.innerHTML = `
     <div class="welcome-screen">
       <div class="panel-badge" style="display:flex;align-items:center;gap:32px;margin-bottom:24px">
-        <img src="images/logo_WebApp.png" alt="Logo Formateur Augmenté EVFC" style="height:200px;width:auto;display:block;flex-shrink:0">
+        <div class="welcome-logo-frame">
+          <img src="images/logo_WebApp.png" alt="Logo Formateur Augmenté EVFC">
+        </div>
         <div class="welcome-slogan">
           <div class="welcome-slogan-main">Concevez plus vite.<br>Formez avec impact.</div>
           <div class="welcome-slogan-sub">L'assistant IA des Formateurs Professionnels d'Adultes</div>
@@ -5340,6 +5461,321 @@ const HELP_TOC = [
   { id: 'section-10', label: '10. Prise en main rapide' },
 ];
 
+const METHOD_CHARTER_MD = `
+### Charte méthodologique : l'art de l'ingénierie pédagogique émancipatrice
+
+#### Hybridation EVFC-Kolb
+
+##### 1. Philosophie de la formation : du technicien au révélateur de consciences
+
+La formation des adultes est un acte éminemment "politique" : elle ne vise pas l'adaptation de l'individu à un système productif, mais son émancipation par le savoir. L'ingénieur pédagogique doit rompre avec la standardisation, ces "slides soporifiques" qui anesthésient la pensée, pour devenir un architecte de la liberté.
+
+Cette posture s'appuie sur une triple filiation philosophique : la **maïeutique socratique** pour faire accoucher les esprits de leurs propres vérités, l'**approche montessorienne** pour garantir l'autonomie au sein d'un cadre préparé, et la **méthode Feynman** pour transformer la complexité en métaphores limpides et signifiantes.
+
+La mission fondamentale de l'ingénieur pédagogique se cristallise dans le rejet du formatage au profit de la révélation :
+
+- **Former des automates :** privilégier la conformité aux procédures, la mémorisation de consignes hors-sol et l'évaluation par l'écart à la norme.
+- **Révéler des consciences :** placer le sens au-dessus de la règle, transformer chaque donnée technique en levier de décision et traiter l'apprenant comme un être en mouvement, capable de s'étonner.
+
+Dans cette dynamique, le formateur n'est plus le "maître" détenteur d'un savoir descendant. Il se positionne comme un **pair**, un guide qui "éclaire le chemin" à côté de l'apprenant, partageant ses propres doutes pour réactiver le "feu intérieur" de l'autre. Ce positionnement horizontal est la condition *sine qua non* de l'engagement profond de l'adulte.
+
+*Cette posture éthique s'ancre dans une réalité psychologique : l'adulte n'apprend que ce qui résonne avec son identité et ses défis.*
+
+##### 2. Le profil de l'apprenant adulte : l'urgence douce et la richesse de l'expérience
+
+Le facteur critique de succès de tout dispositif réside dans la prise en compte du vécu de l'apprenant. L'adulte n'est pas une page blanche ; il arrive avec une "richesse d'expérience" qui doit servir de matériau pédagogique brut.
+
+- **Le concept d'urgence douce :** l'adulte n'a plus le luxe du temps. Pressé par ses responsabilités, il exige une efficacité immédiate, mais son apprentissage nécessite une profondeur de sens et une bienveillance du cadre.
+- **L'espace respirable :** fidèle à Montessori, l'ingénierie doit façonner des environnements où l'autonomie est la règle. Un espace respirable sacralise les pauses réflexives et les échanges.
+- **L'humour comme outil cognitif :** le rire est un levier d'ancrage puissant. Un adulte qui rit dédramatise l'enjeu, libère sa charge cognitive et autorise de nouvelles connexions.
+
+*Comprendre l'adulte exige une structure d'ingénierie robuste capable de transformer ce vécu en compétence transférable.*
+
+##### 3. Le cadre théorique : l'hybridation EVFC x Kolb
+
+Pour garantir une appropriation totale, nous fusionnons la narration humaine de la méthode **EVFC** (Écouter, Voir, Faire, Consolider) avec la rigueur du **Cycle de Kolb**. Cette hybridation s'appuie sur deux tensions fondamentales de l'apprentissage : l'**Axe Vertical de la Perception** (Ressenti/Feel vs Pensée/Think) et l'**Axe Horizontal du Traitement** (Action/Do vs Observation/Watch).
+
+**Matrice de correspondance stratégique**
+
+| Phase de Kolb | Phase EVFC | Intention pédagogique & activité |
+|---|---|---|
+| **Expérience concrète** (Perceiving - Feel) | **VOIR (Le vertige)** | Susciter le vertige initial par un choc visuel ou un échec fécond. On sollicite le ressenti brut. |
+| **Observation réfléchie** (Processing - Watch) | **ÉCOUTER / VOIR (Le miroir)** | Analyser les résultats. Le formateur agit en pair socratique pour faire émerger les premiers constats. |
+| **Conceptualisation abstraite** (Perceiving - Think) | **ÉCOUTER (Les clés)** | Apporter les modèles et métaphores Feynman. Transformer l'étonnement en structures logiques. |
+| **Expérimentation active** (Processing - Do) | **FAIRE (Le levier)** | Tester les théories sur un projet réel. Transformer le savoir en outil de liberté. |
+
+La phase **Consolider** d'EVFC agit comme le liant métacognitif : elle reboucle le cycle en transformant l'action en une nouvelle expérience enrichie. Cette structure satisfait tous les profils : du *Divergent* au *Assimilateur*, jusqu'au *Convergent* et à l'*Accommodateur*.
+
+*Cette matrice se décline en deux architectures selon les besoins du terrain.*
+
+##### 4. Architectures de séance : le labo vs l'éveil
+
+Le choix de l'architecture dépend de la complexité de l'objectif et de la maturité des apprenants.
+
+- **Option 1 : le labo des résonances (l'immersif) :** Écouter > Voir > Faire > Consolider. Cette structure progressive commence par le récit pour rassurer et ancrer les bases avant de passer à l'action.
+- **Option 2 : l'éveil par le défi (le cycle inversé) :** Voir > Écouter > Faire > Consolider. On provoque un vertige initial en confrontant l'apprenant à un résultat final vibrant ou à une situation de crise.
+
+**Guide de choix pour l'ingénieur pédagogique**
+
+| Caractéristique | Le labo des résonances | L'éveil par le défi |
+|---|---|---|
+| **Dynamique** | Sécuriser et accompagner | Provoquer et électriser |
+| **Postulat** | Construire la confiance | Briser les vieux réflexes |
+| **Action Formateur** | Ancrer par le récit de pair | Déclencher par le défi |
+| **Résultat visé** | Stabiliser les savoir-faire | Transformer la posture |
+
+##### 5. Le "bac à sable de l'audace" : transformer le savoir en levier
+
+La phase **FAIRE** n'est jamais une répétition mécanique ; c'est un laboratoire d'audace où le droit à l'erreur est sacralisé.
+
+**L'exemple du prompt IA :** plutôt que de dicter une méthode, on commence par un échec vécu. On donne un brief flou ("Préparez un message client"). L'apprenant constate la pauvreté du résultat. On introduit alors la **perturbation** : "Seuls les clients du module Reporting sont concernés, la coupure est mardi de 8h à 10h, n'appelez pas le support." Cette contrainte force l'apprenant à quitter sa posture d'automate pour utiliser la méthode comme un levier de précision.
+
+Pour structurer cette pensée en action, l'apprenant utilise la **Matrice de Questionnement** :
+
+- **Contexte & public :** qui sommes-nous et à qui parlons-nous ?
+- **Objectif & format :** quel est le but précis et la forme attendue ?
+- **Données & contraintes :** quelles informations sont vérifiées et quelles sont les limites ?
+- **Risques :** qu'est-ce qui pourrait être faux ou non validé ?
+- **Critères :** comment savoir si la sortie est excellente ?
+
+##### 6. Évaluation et sacralisation : le bilan de l'audace
+
+L'évaluation ne mesure plus la conformité, mais la transformation intérieure. Elle se ritualise dans un **Cercle d'Échange** final où l'on valide le "Parcours de Conscience".
+
+L'outil central est l'**Échelle du Feu Intérieur (1 à 5)** : l'apprenant évalue la résonance de chaque phase (Écouter, Voir, Faire, Consolider) sur son propre développement. Ce bilan sacralisé repose sur quatre piliers :
+
+1. **L'erreur féconde :** l'identification de l'échec le plus instructif.
+2. **Le saut dans le vide :** ce qui a été tenté par pure audace technique.
+3. **Le rire pédagogique :** le moment où l'humour a débloqué une tension cognitive.
+4. **L'engagement d'audace :** ce que l'apprenant s'autorise à rater demain pour grandir.
+
+*"La connaissance n'est pas une destination, c'est le mouvement perpétuel entre l'action et la conscience."*
+
+Ce mouvement transforme l'expérience brute en une sagesse professionnelle renouvelée.
+
+##### 7. Conclusion : vers une ingénierie de la liberté
+
+L'hybridation EVFC-Kolb n'est pas une simple technique, c'est un standard d'excellence pour les formateurs qui souhaitent honorer la dignité de l'adulte. En alliant la structure cyclique de la cognition à la narration émancipatrice, nous créons des dispositifs qui ne forment pas pour adapter, mais pour libérer.
+
+La recommandation ultime pour tout ingénieur pédagogique est d'incarner cette méthode : il faut avoir vécu soi-même le vertige et le rire de l'apprentissage pour être capable, à son tour, de révéler les consciences.
+`;
+
+const METHOD_CHARTER_TOC = [
+  { id: 'charter-section-1', label: '1. Philosophie' },
+  { id: 'charter-section-2', label: '2. Apprenant adulte' },
+  { id: 'charter-section-3', label: '3. EVFC x Kolb' },
+  { id: 'charter-section-4', label: '4. Labo vs Éveil' },
+  { id: 'charter-section-5', label: '5. Bac à sable' },
+  { id: 'charter-section-6', label: '6. Évaluation' },
+  { id: 'charter-section-7', label: '7. Liberté' },
+];
+
+const ERA_GUIDE_MD = `
+### Guide ERA : régulation pédagogique pour adultes
+
+#### Empathie · résolution · adhésion
+
+Fondements, mécanismes et pratiques de la régulation relationnelle et de la remédiation en formation d'adultes.
+
+**Public cible :** formateurs professionnels d'adultes, tuteurs, conseillers en insertion et ingénieurs pédagogiques.
+
+**Contextes d'usage :** animation de groupe, accompagnement individuel, conception de dispositifs de remédiation, formation de formateurs.
+
+##### 1. Introduction
+
+La formation professionnelle des adultes est un écosystème complexe où s'entrecroisent trajectoires de vie, identités sociales et enjeux de transformation des compétences. Contrairement à la pédagogie scolaire, l'andragogie s'adresse à des individus dont l'apprentissage est conditionné par une autonomie psychologique et une accumulation d'expériences antérieures.
+
+**Point clé**
+
+Lorsqu'un apprenant adulte rencontre une difficulté, il ne vit pas qu'une erreur cognitive : il subit une épreuve émotionnelle qui peut ébranler son estime de soi. La relation pédagogique devient le pivot de l'apprentissage.
+
+C'est dans cette perspective que s'inscrit la boucle E.R.A. Ce modèle constitue un cadre d'intervention systémique permettant de réguler la relation formateur-apprenant et d'apporter une réponse pédagogique ciblée aux blocages.
+
+##### 2. Présentation globale de la boucle E.R.A.
+
+La boucle E.R.A. est un modèle dynamique structurant l'intervention du formateur dès l'apparition d'un signe d'incompréhension. Sa logique repose sur trois étapes interdépendantes :
+
+| Phase | Intention | Action du formateur | Mécanisme impliqué |
+|---|---|---|---|
+| **E — Empathie** | Sécuriser la relation | Écoute active, validation de la difficulté, non-jugement | Désactivation du système d'alerte |
+| **R — Résolution** | Traiter le blocage | Diagnostic pédagogique, ajustement des méthodes, explicitation | Activation des fonctions exécutives et de la neuroplasticité |
+| **A — Adhésion** | Relancer l'autonomie | Feedback positif, vérification de compréhension, motivation | Circuit de la récompense et auto-efficacité |
+
+**Les deux trajectoires possibles**
+
+| Voie de l'adhésion | Voie du conflit |
+|---|---|
+| Boucle E.R.A. appliquée | Déni de la difficulté ou de l'émotion |
+| Dynamique relationnelle horizontale | Escalade : frustration > opposition > retrait |
+| Obstacle transformé en succès pédagogique | Rupture pédagogique et apprentissage impossible |
+
+##### 3. Analyse détaillée de chaque composante
+
+**E — Empathie : le socle de la sécurité psychologique**
+
+L'empathie est la porte d'entrée indispensable de toute remédiation. Elle ne relève pas de la sympathie mais de la compréhension empathique : comprendre le point de vue de l'autre sans s'y perdre.
+
+**Objectif pédagogique :** désamorcer les défenses instinctives liées au stress. En se sentant compris, l'apprenant cesse de percevoir la situation comme une menace pour son ego.
+
+**Comportements observables :**
+
+- Utilisation de l'écoute active et silencieuse
+- Posture ouverte, regard bienveillant et hochements de tête synchronisés
+- Validation verbale : "Je vois que cette notion vous semble floue, c'est tout à fait normal."
+
+**Erreurs fréquentes :**
+
+- Déni d'émotion : "Ce n'est pas grave", "C'est pourtant simple"
+- Ironie ou minimisation de la difficulté
+
+**R — Résolution : le levier de la remédiation cognitive**
+
+Une fois la sécurité rétablie, le formateur engage la phase de traitement technique du problème : diagnostic et adaptation pédagogique.
+
+**Comportements observables :**
+
+- Faire verbaliser l'action pour repérer le point de rupture
+- Adapter les supports : passer du texte au schéma, de la théorie à la manipulation concrète
+- Segmenter la tâche en micro-objectifs atteignables
+
+**Erreur fréquente :** répéter la même explication plus fort ou plus lentement sans changer de registre pédagogique.
+
+**A — Adhésion : le moteur de la persévérance**
+
+L'adhésion marque la clôture de la boucle et le retour à l'activité autonome. C'est la validation que le lien et le sens sont restaurés.
+
+**Comportements observables :**
+
+- Reprise active de l'exercice sans aide directe
+- Expression de satisfaction ou déclic visible
+- Questionnement proactif sur l'étape suivante
+
+**Bonne pratique :** valoriser l'effort et la stratégie plutôt que le résultat : "Vous avez bien fait de décomposer le problème, c'est ce qui vous a permis de réussir."
+
+##### 4. Analyse de la voie du conflit
+
+La voie du conflit représente l'échec de la boucle ERA. Elle naît d'une spirale descendante initiée par une maladresse relationnelle ou pédagogique.
+
+| Phase | Comportement | Impact cognitif |
+|---|---|---|
+| Déni du formateur | "Allez, ce n'est pas compliqué !" | Sentiment de rejet, blocage attentionnel |
+| Frustration croissante | L'apprenant s'agite ou s'isole | Hausse du stress, inhibition de l'attention |
+| Conflit ouvert | Opposition, agressivité, remise en cause | Rupture pédagogique et contagion au groupe |
+
+**Plan de remédiation : actions correctives**
+
+- Marquer une pause : interrompre le flux pour reconnaître le malaise
+- Gérer ses propres émotions : s'ancrer physiquement, respirer, adopter un ton apaisant
+- Proposer un entretien de régulation en privé pour éviter la perte de face
+- Utiliser la CNV : décrire les faits, exprimer son besoin, formuler une demande ouverte
+
+**Formulations utiles**
+
+| Ce qu'il faut dire | Pourquoi ça marche |
+|---|---|
+| "Je vois que la situation vous met en colère. Regardons ensemble ce que nous pouvons faire." | Valide l'émotion et invite à la coopération sans attaquer la personne |
+| "J'ai l'impression que cette étape ne vous parle pas. Comment pourriez-vous l'adapter à votre réalité ?" | Restaure l'autonomie et le sens pour l'adulte |
+| "Je me trompe peut-être, mais vous semblez préoccupé par ce délai ?" | Vérifie une perception sans l'imposer |
+
+##### 5. Cas pratiques détaillés
+
+**Cas n°1 — Apprenant en reconversion : blocage technique**
+
+**Contexte :** Jacques, 52 ans, ancien maçon, suit une formation de comptabilité. Il bloque sur le concept de débit/crédit.
+
+**Symptômes :** il referme son cahier : "Ce n'est pas pour moi, c'est trop tard pour apprendre."
+
+**E —** "Jacques, je vois que cette gymnastique mentale vous agace. C'est frustrant de se sentir bloqué après des années de métier concret."
+
+**R —** "Oublions les mots techniques. On va dessiner une balance physique. Où mettriez-vous ce qui entre dans votre poche ?"
+
+**A —** Jacques trace le schéma, comprend l'équilibre. Le formateur félicite son analyse logique. Jacques reprend l'exercice avec intérêt.
+
+**Analyse :** l'empathie désamorce la peur de l'échec liée à l'âge. La résolution utilise un canal visuel et une analogie concrète.
+
+**Cas n°2 — Adulte en difficulté numérique : surcharge cognitive**
+
+**Contexte :** Sonia doit apprendre à utiliser un nouveau logiciel de gestion de stock en deux jours.
+
+**Symptômes :** elle s'arrête de cliquer, ses yeux fixent l'écran mais elle semble absente.
+
+**E —** "Sonia, l'écran semble très chargé, n'est-ce pas ? On a l'impression qu'il y a trop d'informations d'un coup."
+
+**R —** "On va masquer la colonne de droite. Concentrons-nous sur un seul bouton. Je vous ai fait un mémo en trois étapes."
+
+**A —** Sonia effectue sa première saisie seule et dit : "Ah, comme ça c'est plus clair."
+
+**Analyse :** identification de la surcharge cognitive, puis simplification de l'interface après validation du sentiment de submersion.
+
+**Cas n°3 — L'apprenant opposant : profil contestataire**
+
+**Contexte :** lors d'une formation sécurité au travail, Marc conteste chaque consigne du formateur.
+
+**Symptômes :** "Dans la vraie vie, personne ne fait ça, c'est de la théorie pour se couvrir."
+
+**E —** "Marc, je comprends que les règles semblent parfois déconnectées de l'urgence de vos chantiers réels."
+
+**R —** "Justement, selon votre expérience, quel serait le risque si on zappait cette étape en situation de stress ?"
+
+**A —** Marc expose un cas vécu, reconnaît l'utilité de la règle et devient l'allié du formateur pour sensibiliser le groupe.
+
+**Analyse :** l'expérience de l'adulte transforme l'opposition en adhésion.
+
+##### 6. Bénéfices du modèle
+
+| Pour les apprenants | Pour le formateur | Pour l'organisation |
+|---|---|---|
+| Réduction du stress et de l'anxiété de performance | Diminution de la fatigue émotionnelle liée aux conflits | Diminution du taux de décrochage |
+| Amélioration de l'estime de soi | Amélioration de la relation pédagogique | Augmentation de la satisfaction des stagiaires |
+| Ancrage durable des savoirs | Gain d'efficacité : moins de temps perdu | Climat social apaisé |
+
+##### 7. Limites du modèle
+
+Bien que performant, le modèle ERA présente des limites qu'un formateur expert doit intégrer pour éviter les dérives.
+
+**Limites pédagogiques**
+
+- Trop d'empathie peut glisser vers une relation thérapeutique
+- Dans des formations très denses, la régulation peut sembler impossible
+- Réduire la complexité humaine à trois étapes peut occulter des problèmes systémiques
+
+**Limites psychologiques**
+
+- Une empathie jouée sera perçue et rompt la confiance
+- Le modèle exige une grande maturité et une maîtrise de soi du formateur
+- Il ne traite pas les troubles neurodéveloppementaux lourds
+
+##### 8. Recommandations opérationnelles pour FPA
+
+**Grille d'auto-évaluation du formateur**
+
+| Critère de posture | Jamais | Parfois | Toujours |
+|---|---|---|---|
+| Je repère les signes non verbaux de stress | ☐ | ☐ | ☐ |
+| J'utilise le "je" sans juger l'apprenant | ☐ | ☐ | ☐ |
+| Je laisse un silence après une incompréhension | ☐ | ☐ | ☐ |
+| Je varie mes méthodes si une explication ne passe pas | ☐ | ☐ | ☐ |
+| Je vérifie l'adhésion réelle avant de passer à la suite | ☐ | ☐ | ☐ |
+
+**Checklist d'intervention rapide**
+
+- Alerte : l'apprenant décroche ou s'énerve
+- Phase E : valider l'émotion. "Je vois que c'est difficile."
+- Phase R : proposer un changement. "On essaie une autre approche ?"
+- Phase A : vérifier la reprise d'activité autonome
+`;
+
+const ERA_GUIDE_TOC = [
+  { id: 'era-section-1', label: '1. Introduction' },
+  { id: 'era-section-2', label: '2. Boucle E.R.A.' },
+  { id: 'era-section-3', label: '3. Composantes' },
+  { id: 'era-section-4', label: '4. Conflit' },
+  { id: 'era-section-5', label: '5. Cas pratiques' },
+  { id: 'era-section-6', label: '6. Bénéfices' },
+  { id: 'era-section-7', label: '7. Limites' },
+  { id: 'era-section-8', label: '8. Recommandations' },
+];
+
 function showHelp() {
   const overlay = document.createElement('div');
   overlay.className = 'help-overlay';
@@ -5399,6 +5835,118 @@ function showHelp() {
   });
 
   // Close on Escape
+  document._helpKeyHandler = e => { if (e.key === 'Escape') closeHelp(); };
+  document.addEventListener('keydown', document._helpKeyHandler);
+}
+
+function showMethodCharter() {
+  const overlay = document.createElement('div');
+  overlay.className = 'help-overlay';
+  overlay.id = 'help-overlay';
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeHelp(); });
+
+  const html = marked.parse(METHOD_CHARTER_MD);
+  const tocHTML = METHOD_CHARTER_TOC.map((item, i) => `
+    <a class="help-toc-link" data-idx="${i}" onclick="helpScrollTo('${item.id}', this)">${item.label}</a>
+  `).join('');
+
+  overlay.innerHTML = `
+    <div class="help-dialog">
+      <div class="help-header">
+        <div class="help-header-title">
+          <span style="background:var(--navy);color:white;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.5px;">CHARTE</span>
+          Méthode EVFC — Ingénierie pédagogique émancipatrice
+        </div>
+        <button class="modal-close" onclick="closeHelp()" title="Fermer">✕</button>
+      </div>
+      <div class="help-layout">
+        <nav class="help-toc">
+          <div class="help-toc-title">Sommaire</div>
+          ${tocHTML}
+        </nav>
+        <div class="help-content" id="help-content">${html}</div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const content = document.getElementById('help-content');
+  content.querySelectorAll('h5').forEach((el, i) => {
+    if (METHOD_CHARTER_TOC[i]) el.id = METHOD_CHARTER_TOC[i].id;
+  });
+
+  const firstLink = overlay.querySelector('.help-toc-link');
+  if (firstLink) firstLink.classList.add('active');
+
+  const links = overlay.querySelectorAll('.help-toc-link');
+  content.addEventListener('scroll', () => {
+    const scrollTop = content.scrollTop + 40;
+    const headings = content.querySelectorAll('h5');
+    let activeIdx = 0;
+    headings.forEach((h, i) => {
+      if (h.offsetTop <= scrollTop) activeIdx = i;
+    });
+    links.forEach(l => l.classList.remove('active'));
+    if (links[activeIdx]) links[activeIdx].classList.add('active');
+  });
+
+  document._helpKeyHandler = e => { if (e.key === 'Escape') closeHelp(); };
+  document.addEventListener('keydown', document._helpKeyHandler);
+}
+
+function showEraGuide() {
+  const overlay = document.createElement('div');
+  overlay.className = 'help-overlay';
+  overlay.id = 'help-overlay';
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeHelp(); });
+
+  const html = marked.parse(ERA_GUIDE_MD);
+  const tocHTML = ERA_GUIDE_TOC.map((item, i) => `
+    <a class="help-toc-link" data-idx="${i}" onclick="helpScrollTo('${item.id}', this)">${item.label}</a>
+  `).join('');
+
+  overlay.innerHTML = `
+    <div class="help-dialog">
+      <div class="help-header">
+        <div class="help-header-title">
+          <span style="background:#db2777;color:white;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.5px;">ERA</span>
+          Guide ERA — Régulation pédagogique pour adultes
+        </div>
+        <button class="modal-close" onclick="closeHelp()" title="Fermer">✕</button>
+      </div>
+      <div class="help-layout">
+        <nav class="help-toc">
+          <div class="help-toc-title">Sommaire</div>
+          ${tocHTML}
+        </nav>
+        <div class="help-content" id="help-content">${html}</div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const content = document.getElementById('help-content');
+  content.querySelectorAll('h5').forEach((el, i) => {
+    if (ERA_GUIDE_TOC[i]) el.id = ERA_GUIDE_TOC[i].id;
+  });
+
+  const firstLink = overlay.querySelector('.help-toc-link');
+  if (firstLink) firstLink.classList.add('active');
+
+  const links = overlay.querySelectorAll('.help-toc-link');
+  content.addEventListener('scroll', () => {
+    const scrollTop = content.scrollTop + 40;
+    const headings = content.querySelectorAll('h5');
+    let activeIdx = 0;
+    headings.forEach((h, i) => {
+      if (h.offsetTop <= scrollTop) activeIdx = i;
+    });
+    links.forEach(l => l.classList.remove('active'));
+    if (links[activeIdx]) links[activeIdx].classList.add('active');
+  });
+
   document._helpKeyHandler = e => { if (e.key === 'Escape') closeHelp(); };
   document.addEventListener('keydown', document._helpKeyHandler);
 }
