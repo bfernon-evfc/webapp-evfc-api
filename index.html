@@ -1389,6 +1389,21 @@
   .modal-tab.active { color: var(--navy); border-bottom-color: var(--navy); }
   [data-theme="dark"] .modal-tab.active { color: #7eb3f7; border-bottom-color: #7eb3f7; }
 
+  .modal-source-alert {
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15, 76, 129, 0.08);
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.5;
+    flex-shrink: 0;
+  }
+  .modal-source-alert strong { color: var(--navy); }
+  [data-theme="dark"] .modal-source-alert {
+    background: rgba(126, 179, 247, 0.12);
+  }
+  [data-theme="dark"] .modal-source-alert strong { color: #7eb3f7; }
+
   .modal-body {
     flex: 1;
     overflow-y: auto;
@@ -2214,6 +2229,10 @@ Les scénarios doivent être crédibles, directement transposables, évaluables 
 Génère une grille d'évaluation critériée complète et directement exploitable.
 Inclus : critères observables (comportements concrets), indicateurs de maîtrise par niveau, descripteurs précis pour chaque case, pondération éventuelle, cases formateur/apprenant.
 La grille doit être observable SANS interprétation subjective. Présente sous forme de tableau Markdown détaillé.
+Si le format demandé contient les deux grilles, produis deux tableaux de critères distincts avec ces titres exacts :
+1. "## Grille d'observation formateur"
+2. "## Grille d'auto-évaluation apprenant"
+Le tableau "Contexte d'évaluation" ne doit jamais servir de grille de critères.
 Ajoute une notice d'utilisation courte pour le formateur.`
   },
   {
@@ -4555,28 +4574,105 @@ async function exportDOCX() {
 // ─────────────────────────────────────────────
 // M5 — PARSE GRILLE FROM MARKDOWN
 // ─────────────────────────────────────────────
-function parseGrilleFromMarkdown(mdText) {
+function normalizeGridText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function splitMarkdownTableLine(line) {
+  return line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map(cell => cell.trim());
+}
+
+function isMarkdownSeparatorLine(line) {
+  return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+}
+
+function extractMarkdownTables(mdText) {
+  const lines = mdText.split('\n');
+  const tables = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].trim().startsWith('|')) continue;
+
+    const start = i;
+    const tableLines = [];
+    while (i < lines.length && lines[i].trim().startsWith('|')) {
+      tableLines.push(lines[i]);
+      i++;
+    }
+
+    const headerLine = tableLines.find(line => !isMarkdownSeparatorLine(line));
+    if (!headerLine) continue;
+
+    const headers = splitMarkdownTableLine(headerLine);
+    const dataLines = tableLines
+      .slice(tableLines.indexOf(headerLine) + 1)
+      .filter(line => !isMarkdownSeparatorLine(line));
+
+    const rows = dataLines
+      .map(line => splitMarkdownTableLine(line))
+      .filter(cells => cells.length >= 2 && cells.some(Boolean))
+      .map(cells => {
+        const obj = {};
+        headers.forEach((h, idx) => { obj[h] = cells[idx] || ''; });
+        return obj;
+      });
+
+    const contextStart = Math.max(0, start - 10);
+    const context = lines.slice(contextStart, start).join('\n');
+    tables.push({ headers, rows, context, start });
+  }
+
+  return tables;
+}
+
+function scoreM5GridTable(table, type) {
+  const haystack = normalizeGridText(`${table.context}\n${table.headers.join(' ')}`);
+  const headerText = normalizeGridText(table.headers.join(' '));
+  let score = 0;
+
+  if (/(critere|criteres|dimension|capacite)/.test(headerText)) score += 80;
+  if (/(indicateur|observable|observation|descripteur|preuve)/.test(headerText)) score += 50;
+  if (/(niveau|acquis|maitrise|debutant|expert|insuffisant|0|1|2|3)/.test(headerText)) score += 30;
+  if (table.rows.length >= 2) score += Math.min(table.rows.length, 8) * 4;
+
+  if (/contexte d.?evaluation|modalite|duree|public|materiel|lieu|pre.?requis/.test(haystack)) score -= 140;
+
+  if (type === 'formateur') {
+    if (/grille d.?observation|observation formateur|grille formateur|evaluateur|formateur/.test(haystack)) score += 100;
+    if (/auto.?evaluation|auto evaluation|apprenant/.test(haystack)) score -= 35;
+  } else {
+    if (/auto.?evaluation|auto evaluation|grille apprenant|apprenant/.test(haystack)) score += 100;
+    if (/grille d.?observation|observation formateur|evaluateur/.test(haystack)) score -= 20;
+  }
+
+  return score;
+}
+
+function parseGrilleFromMarkdown(mdText, type = 'formateur') {
   // Extract title (first # heading)
   const titleMatch = mdText.match(/^#\s+(.+)/m);
   const title = titleMatch ? titleMatch[1].trim() : 'Grille d\'évaluation';
 
   // Extract table rows — format: | Critère | Indicateur | Niv1 | Niv2 | ... |
-  const rows = [];
-  const tableLines = mdText.split('\n').filter(l => l.trim().startsWith('|') && !l.includes('---'));
-  
-  if (tableLines.length >= 2) {
-    // First line = headers
-    const headers = tableLines[0].split('|').map(h => h.trim()).filter(Boolean);
-    // Remaining = data rows
-    for (let i = 1; i < tableLines.length; i++) {
-      const cells = tableLines[i].split('|').map(c => c.trim()).filter(Boolean);
-      if (cells.length >= 2 && cells[0]) {
-        const obj = {};
-        headers.forEach((h, idx) => { obj[h] = cells[idx] || ''; });
-        rows.push(obj);
-      }
-    }
-  }
+  const tables = extractMarkdownTables(mdText)
+    .filter(table => table.rows.length > 0 && table.headers.length >= 2)
+    .map(table => ({ ...table, score: scoreM5GridTable(table, type) }))
+    .sort((a, b) => b.score - a.score);
+
+  const selectedTable = tables[0] || null;
+  const rows = selectedTable ? selectedTable.rows : [];
+  const selectedContext = selectedTable ? normalizeGridText(`${selectedTable.context}\n${selectedTable.headers.join(' ')}`) : '';
+  const sourceLabel = selectedTable
+    ? (/auto.?evaluation|grille apprenant|apprenant/.test(selectedContext) ? 'Grille auto-évaluation apprenant' : 'Grille d\'observation formateur')
+    : 'Grille détectée par défaut';
 
   // Fallback: extract criteria from bullet lists if no table found
   if (rows.length === 0) {
@@ -4592,14 +4688,14 @@ function parseGrilleFromMarkdown(mdText) {
   const headers0 = rows.length > 0 ? Object.keys(rows[0]) : [];
   const levels = headers0.filter(h => levelKeywords.test(h));
 
-  return { title, rows, levels, headers: headers0 };
+  return { title, rows, levels, headers: headers0, sourceLabel };
 }
 
 // ─────────────────────────────────────────────
 // M5 — GENERATE APPS SCRIPT
 // ─────────────────────────────────────────────
 function generateAppsScriptForms(mdText, type) {
-  const { title, rows, levels, headers } = parseGrilleFromMarkdown(mdText);
+  const { title, rows, levels, headers, sourceLabel } = parseGrilleFromMarkdown(mdText, type);
   const formTitle = type === 'formateur'
     ? `Grille d'observation formateur — ${title}`
     : `Grille d'auto-évaluation — ${title}`;
@@ -4676,6 +4772,7 @@ function generateAppsScriptForms(mdText, type) {
  * ║  Généré par Formateur Augmenté EVFC — Édumédiapole      ║
  * ║  Date : ${date.padEnd(48)} ║
  * ║  Type : ${(type === 'formateur' ? 'Grille observation formateur' : 'Grille auto-évaluation apprenant').padEnd(48)} ║
+ * ║  Source : ${sourceLabel.slice(0, 47).padEnd(47)} ║
  * ╚══════════════════════════════════════════════════════════╝
  *
  * INSTRUCTIONS D'UTILISATION :
@@ -4730,6 +4827,10 @@ function showFormsModal(type) {
 
   const scriptFormateur = generateAppsScriptForms(currentResult, 'formateur');
   const scriptAutoeval  = generateAppsScriptForms(currentResult, 'autoeval');
+  const sourceInfo = {
+    formateur: parseGrilleFromMarkdown(currentResult, 'formateur').sourceLabel,
+    autoeval: parseGrilleFromMarkdown(currentResult, 'autoeval').sourceLabel
+  };
 
   const activeTab = type;
 
@@ -4772,6 +4873,10 @@ function showFormsModal(type) {
           onclick="switchFormsTab('autoeval')">🟩 Grille Auto-éval</button>
       </div>
 
+      <div class="modal-source-alert" id="forms-source-alert">
+        <strong>Source utilisée :</strong> ${escapeHtml(sourceInfo[activeTab])}. Le tableau "Contexte d'évaluation" est ignoré pour générer les critères.
+      </div>
+
       <div class="modal-body">
         <div class="modal-code-wrap">
           <button class="modal-copy-btn" onclick="copyFormsScript()">📋 Copier le script</button>
@@ -4783,6 +4888,7 @@ function showFormsModal(type) {
 
   // Store scripts on modal element for tab switching
   modal._scripts = { formateur: scriptFormateur, autoeval: scriptAutoeval };
+  modal._sourceInfo = sourceInfo;
   document.body.appendChild(modal);
 
   // Close on overlay click
@@ -4794,6 +4900,8 @@ function switchFormsTab(type) {
   if (!modal) return;
   const script = modal._scripts[type];
   document.getElementById('forms-script-display').textContent = script;
+  document.getElementById('forms-source-alert').innerHTML =
+    `<strong>Source utilisée :</strong> ${escapeHtml(modal._sourceInfo[type])}. Le tableau "Contexte d'évaluation" est ignoré pour générer les critères.`;
   document.getElementById('tab-formateur').classList.toggle('active', type === 'formateur');
   document.getElementById('tab-autoeval').classList.toggle('active', type === 'autoeval');
 }

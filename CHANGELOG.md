@@ -8,6 +8,18 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 20 juin 2026 — Correctif M5 Forms grilles — Mis à jour avec Codex
+
+### 1. Module M5 — scripts Forms alignés sur les bonnes grilles
+
+- Correction du parseur M5 : les scripts Apps Script ne prennent plus le premier tableau Markdown disponible
+- Le bouton **Forms Formateur** cible désormais la **Grille d'observation formateur**
+- Le bouton **Forms Auto-éval** cible désormais la **Grille d'auto-évaluation apprenant**
+- Le tableau **Contexte d'évaluation** est explicitement ignoré pour la génération des critères Forms
+- Ajout d'une notification visible dans la modale indiquant la source de grille utilisée avant copie du script
+
+---
+
 ## Session 20 juin 2026 — Correctifs chaînage EVFC, préchargements et M3 — Mis à jour avec Codex
 
 ### 1. Module M3 — fiabilisation du préchargement depuis M1
