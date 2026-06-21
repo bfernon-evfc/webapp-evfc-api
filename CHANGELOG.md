@@ -8,6 +8,32 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 21 juin 2026 — Recommandations développeur des modules — Mis à jour avec Codex
+
+### 1. Modales modules — bouton "Valeurs recommandées"
+
+- Abandon du préchargement automatique des sélecteurs **Longueur maximale du livrable** et **Créativité du modèle**
+- Les sélecteurs repartent sur une base neutre tant que l'utilisateur ne choisit pas une valeur
+- Ajout d'un bouton **Valeurs recommandées** dans chaque module pour charger les recommandations développeur :
+  - INTRO : `18 000`
+  - M0 : `18 000`
+  - M1 : `12 000`
+  - M3 : `12 000`
+  - M4 : `8 000`
+  - M5 : `8 000`
+- Recommandations de créativité appliquées par le même bouton :
+  - INTRO : `0.7 — créatif`
+  - M0, M1, M4 : `0.5 — équilibré`
+  - M3, M5 : `0.2 — cadré`
+- M2, M6 et M7 conservent leurs recommandations existantes lorsqu'on utilise **Valeurs recommandées**
+- Suppression de la restauration navigateur pour ces deux réglages afin d'éviter le retour d'anciennes valeurs préchargées.
+- Renommage du bouton en **Valeurs recommandées** avec état visuel :
+  - orange avec icône suggestion avant application ;
+  - vert avec coche lorsque les valeurs recommandées sont sélectionnées ;
+  - infobulle au survol expliquant l'action du bouton.
+
+---
+
 ## Session 21 juin 2026 — Rubrique Charte méthodologique EVFC-Kolb — Mis à jour avec Codex
 
 ### 1. Menu gauche — accès à la charte méthodologique

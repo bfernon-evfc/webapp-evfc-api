@@ -570,7 +570,7 @@
 
   .generation-controls {
     display: grid;
-    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
+    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto;
     gap: 12px;
     align-items: end;
     margin-bottom: 12px;
@@ -619,6 +619,78 @@
   [data-theme="dark"] .btn-copy-prompt:hover {
     background: #7eb3f7;
     color: #0d1117;
+  }
+
+  .btn-dev-reco {
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 9px;
+    border: 1.5px solid rgba(249, 115, 22, 0.55);
+    background: rgba(249, 115, 22, 0.12);
+    color: #c2410c;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .btn-dev-reco:hover {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.18);
+    transform: translateY(-1px);
+  }
+
+  .btn-dev-reco.selected {
+    border-color: rgba(22, 163, 74, 0.6);
+    background: rgba(22, 163, 74, 0.14);
+    color: #15803d;
+  }
+
+  .btn-dev-reco.selected:hover {
+    border-color: #16a34a;
+    background: rgba(22, 163, 74, 0.2);
+  }
+
+  .btn-dev-reco::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    transform: translateX(-50%);
+    width: 240px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #111827;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.35;
+    white-space: normal;
+    box-shadow: var(--shadow-card);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+    z-index: 20;
+  }
+
+  .btn-dev-reco:hover::after,
+  .btn-dev-reco:focus-visible::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-2px);
+  }
+
+  [data-theme="dark"] .btn-dev-reco {
+    border-color: rgba(251, 146, 60, 0.62);
+    background: rgba(251, 146, 60, 0.18);
+    color: #fed7aa;
+  }
+
+  [data-theme="dark"] .btn-dev-reco.selected {
+    border-color: rgba(74, 222, 128, 0.68);
+    background: rgba(34, 197, 94, 0.18);
+    color: #bbf7d0;
   }
 
   /* RESTORE BANNER */
@@ -1113,6 +1185,21 @@
   @media(max-width:600px) { .welcome-model-cards { grid-template-columns: 1fr; } }
   .welcome-model-card {
     border-radius: 10px; padding: 12px 14px; border: 1.5px solid;
+  }
+  .welcome-model-card.model-haiku {
+    background: rgba(124, 58, 237, 0.05);
+    border-color: rgba(124, 58, 237, 0.25);
+    color: #7c3aed;
+  }
+  .welcome-model-card.model-sonnet {
+    background: rgba(2, 132, 199, 0.05);
+    border-color: rgba(2, 132, 199, 0.25);
+    color: #0284c7;
+  }
+  .welcome-model-card.model-opus {
+    background: rgba(180, 83, 9, 0.05);
+    border-color: rgba(180, 83, 9, 0.25);
+    color: #b45309;
   }
   .welcome-model-card-name { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
   .welcome-model-card-id { font-size: 10px; opacity: 0.65; font-family: monospace; margin-bottom: 6px; }
@@ -1991,15 +2078,16 @@ const MODEL_MAX_OUTPUT_TOKENS = {
   [MODEL_IDS.opus48]: 128000,
 };
 const TOKEN_PRESETS = [6000, 8000, 12000, 18000, 24000, 36000];
-// Valeurs ajustées d'après des tests de génération réels (tokens de sortie mesurés + marge) :
-// INTRO ~10079, M0 ~4904, M1 ~8046, M3 ~12727, M4 ~5799, M5 ~5401, M6 ~5224, M2 ~32900 tokens de sortie.
-const DEFAULT_MAX_TOKENS_BY_MODULE = {
-  intro: 12000,
-  m0: 8000,
+const NEUTRAL_MAX_TOKENS = 6000;
+const NEUTRAL_TEMPERATURE = 0.5;
+// Recommandations développeur, appliquées uniquement via le bouton "Valeurs recommandées".
+const DEV_RECOMMENDED_MAX_TOKENS_BY_MODULE = {
+  intro: 18000,
+  m0: 18000,
   m1: 12000,
   m2: 36000,
-  m3: 18000,
-  m4: 12000,
+  m3: 12000,
+  m4: 8000,
   m5: 8000,
   m6: 8000,
   m7: 18000,
@@ -2010,8 +2098,7 @@ const TEMPERATURE_PRESETS = [
   { value: 0.7, label: '0.7 — créatif' },
   { value: 1, label: '1.0 — exploratoire' },
 ];
-// Températures recommandées d'après les tests de génération réels par module.
-const DEFAULT_TEMPERATURE_BY_MODULE = {
+const DEV_RECOMMENDED_TEMPERATURE_BY_MODULE = {
   intro: 0.7,
   m0: 0.5,
   m1: 0.5,
@@ -2390,8 +2477,10 @@ let activeChain = [];     // current chain being navigated
 let resultCache = {};     // { skillId: lastGeneratedText }
 let resultModelByModule = parseStoredJson(STORAGE_KEYS.resultModelByModule, {}); // { skillId: modelId | generationMeta }
 let handoffCache = parseStoredJson(STORAGE_KEYS.handoffCache, {}); // { targetSkillId: { sourceId, fields, createdAt } }
-let maxTokensByModule = parseStoredJson(STORAGE_KEYS.maxTokensByModule, {});
-let temperatureByModule = parseStoredJson(STORAGE_KEYS.temperatureByModule, {});
+let maxTokensByModule = {};
+let temperatureByModule = {};
+safeRemoveLocalStorage(STORAGE_KEYS.maxTokensByModule);
+safeRemoveLocalStorage(STORAGE_KEYS.temperatureByModule);
 
 // ─────────────────────────────────────────────
 // THEME
@@ -2545,7 +2634,7 @@ function renderWelcome() {
         <div class="welcome-model-title">🤖 Quel modèle Claude choisir ?</div>
         <div class="welcome-model-cards">
           ${Object.entries(MODEL_CATALOG).map(([id, model]) => `
-            <div class="welcome-model-card" style="background:${model.color}0d;border-color:${model.color}40;color:${model.color}">
+            <div class="welcome-model-card ${id === MODEL_IDS.haiku45 ? 'model-haiku' : id === MODEL_IDS.sonnet46 ? 'model-sonnet' : 'model-opus'}">
               <div class="welcome-model-card-name">${model.label}${model.default ? ' ✦ Défaut' : ''}</div>
               <div class="welcome-model-card-id">${id}</div>
               <div class="welcome-model-card-desc">${getModelDescription(id)}</div>
@@ -2745,6 +2834,8 @@ function renderSkillPanel() {
   const temperatureOptionsHTML = TEMPERATURE_PRESETS.map(p =>
     `<option value="${p.value}" ${p.value === selectedTemperature ? 'selected' : ''}>${p.label}</option>`
   ).join('');
+  const devReco = getDevRecommendedSettings(skill.id);
+  const isDevRecoSelected = selectedMaxTokens === devReco.maxTokens && selectedTemperature === devReco.temperature;
   const handoff = handoffCache[skill.id];
   const handoffContextHTML = handoff ? `
     <div style="
@@ -2914,6 +3005,13 @@ function renderSkillPanel() {
         </select>
         <span class="input-hint">Baisse-la pour des sorties strictes, augmente-la pour des variantes plus créatives.</span>
       </div>
+      <button
+        class="btn-dev-reco ${isDevRecoSelected ? 'selected' : ''}"
+        id="btn-dev-reco"
+        onclick="applyDevRecommendedSettings()"
+        data-tooltip="Charge les valeurs recommandées par le développeur pour ce module : longueur du livrable et créativité du modèle.">
+        ${isDevRecoSelected ? '✅ Valeurs recommandées' : '💡 Valeurs recommandées'}
+      </button>
       <button class="btn-copy-prompt" onclick="copyPromptBeforeGeneration()">📋 Copier le prompt</button>
     </div>
 
@@ -3256,7 +3354,7 @@ function prefillM3From(sourceId) {
 function getMaxTokensForSkill(skillId) {
   const stored = maxTokensByModule[skillId];
   if (stored === NO_MAX_TOKENS) return NO_MAX_TOKENS;
-  const fallback = DEFAULT_MAX_TOKENS_BY_MODULE[skillId] ?? 6000;
+  const fallback = NEUTRAL_MAX_TOKENS;
   if (stored === undefined || stored === null || stored === '') return fallback;
   return Number(stored) || fallback;
 }
@@ -3280,17 +3378,13 @@ function setMaxTokensForCurrentSkill(value) {
     if (!TOKEN_PRESETS.includes(parsed)) return;
     maxTokensByModule[currentSkill.id] = parsed;
   }
-  safeSetLocalStorage(
-    STORAGE_KEYS.maxTokensByModule,
-    JSON.stringify(maxTokensByModule),
-    'Préférence de longueur non enregistrée.'
-  );
+  updateDevRecoButtonState();
 }
 
 function getTemperatureForSkill(skillId) {
   const stored = Number(temperatureByModule[skillId]);
   if (TEMPERATURE_PRESETS.some(p => p.value === stored)) return stored;
-  return DEFAULT_TEMPERATURE_BY_MODULE[skillId] ?? 0.5;
+  return NEUTRAL_TEMPERATURE;
 }
 
 function setTemperatureForCurrentSkill(value) {
@@ -3298,11 +3392,41 @@ function setTemperatureForCurrentSkill(value) {
   const parsed = Number(value);
   if (!TEMPERATURE_PRESETS.some(p => p.value === parsed)) return;
   temperatureByModule[currentSkill.id] = parsed;
-  safeSetLocalStorage(
-    STORAGE_KEYS.temperatureByModule,
-    JSON.stringify(temperatureByModule),
-    'Préférence de créativité non enregistrée.'
-  );
+  updateDevRecoButtonState();
+}
+
+function getDevRecommendedSettings(skillId) {
+  return {
+    maxTokens: DEV_RECOMMENDED_MAX_TOKENS_BY_MODULE[skillId] ?? NEUTRAL_MAX_TOKENS,
+    temperature: DEV_RECOMMENDED_TEMPERATURE_BY_MODULE[skillId] ?? NEUTRAL_TEMPERATURE,
+  };
+}
+
+function applyDevRecommendedSettings() {
+  if (!currentSkill) return;
+  const reco = getDevRecommendedSettings(currentSkill.id);
+  maxTokensByModule[currentSkill.id] = reco.maxTokens;
+  temperatureByModule[currentSkill.id] = reco.temperature;
+
+  const maxTokensField = document.getElementById('field_max_tokens');
+  const temperatureField = document.getElementById('field_temperature');
+  if (maxTokensField) maxTokensField.value = String(reco.maxTokens);
+  if (temperatureField) temperatureField.value = String(reco.temperature);
+
+  const temperatureLabel = TEMPERATURE_PRESETS.find(p => p.value === reco.temperature)?.label || reco.temperature;
+  updateDevRecoButtonState();
+  showToast(`✅ Valeurs recommandées appliquées : ${reco.maxTokens.toLocaleString('fr-FR')} tokens · ${temperatureLabel}`, 'success');
+}
+
+function updateDevRecoButtonState() {
+  if (!currentSkill) return;
+  const btn = document.getElementById('btn-dev-reco');
+  if (!btn) return;
+  const reco = getDevRecommendedSettings(currentSkill.id);
+  const selected = getMaxTokensForSkill(currentSkill.id) === reco.maxTokens
+    && getTemperatureForSkill(currentSkill.id) === reco.temperature;
+  btn.classList.toggle('selected', selected);
+  btn.textContent = selected ? '✅ Valeurs recommandées' : '💡 Valeurs recommandées';
 }
 
 function collectSkillInputs(skill, markInvalid = true) {
