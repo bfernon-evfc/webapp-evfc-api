@@ -8,6 +8,53 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 22 juin 2026 - Publication standalone v2.1 dans le dépôt - Mis à jour avec Codex
+
+### 1. Remplacement de l'application principale
+
+- Renommage de l'ancien `index.html` en `old_index.html`
+- Copie de `Formateur Augmenté EVFC - Standalone.html` comme nouveau `index.html` du sous-dépôt
+- Conservation d'une version autonome complète, ouvrable directement dans le navigateur
+- Vérification syntaxique du script applicatif extrait avec `node --check`
+
+### 2. Header, identité visuelle et modèle par défaut
+
+- Affichage du badge de version **v2.1**
+- Remplacement du badge rouge du header par la bannière Édumédiapole sur fond blanc avec coins arrondis
+- Ajout du logo WebApp sur l'écran d'accueil, à gauche du bloc de présentation EVFC
+- Alignement du sélecteur de modèle dans le header
+- Modèle par défaut confirmé sur **Claude Sonnet 4.6**
+
+### 3. Documents de référence intégrés
+
+- Complétion de la **Charte méthodologique EVFC-Kolb** depuis le document source complet
+- Complétion du **Guide ERA** depuis le document source complet
+- Nettoyage du Guide ERA : suppression des images parasites et correction de la navigation par sommaire
+
+### 4. Génération IA et qualité des paramètres
+
+- Injection des contenus complets des `SKILL.md` des 9 modules dans la table embarquée `EVFC_MODULE_SKILLS`
+- Ajout d'une consigne de garde empêchant les réponses génériques du type `SKILL.md non injecté`
+- Libellé dynamique des boutons de génération : `Générer avec [modèle sélectionné]`
+- Ajout d'une jauge de qualité des paramètres sur le bouton de génération : modèle recommandé, tokens, température et complétion des champs
+
+### 5. Livrables, persistance et exports
+
+- Affichage compact des livrables déjà générés à l'ouverture d'un module, avec accès explicite à l'affichage complet
+- Persistance des livrables générés pendant la session via le cache local
+- Restauration des actions d'export PDF et DOCX depuis les livrables mémorisés
+- Correction de l'export DOCX pour éviter les erreurs de génération liées aux paragraphes et blocs vides
+- Ajout d'un témoin dans le header indiquant quand des livrables existent et peuvent être vidés
+
+### 6. Sidebar et navigation
+
+- Transformation des catégories de la sidebar en dropdowns à ouverture douce
+- Démarrage avec **Référentiels** déplié et les autres catégories repliées
+- Application du code couleur EVFC et Édumédiapole aux catégories de la sidebar en modes clair et sombre
+- Colorisation des badges **Chaîne suivante** selon les couleurs de la vue Modules de l'accueil
+
+---
+
 ## Session 22 juin 2026 - Parcours prédéfinis et ajustements UI - Mis à jour avec Codex
 
 ### 1. Page dédiée "Parcours prédéfinis"

@@ -8,7 +8,7 @@ Application web pédagogique pour formateurs FPA (Formateurs Professionnels d'Ad
 
 L'outil couvre l'intégralité de la chaîne de production pédagogique selon la méthode **EVFC** (Écouter · Voir · Faire · Consolider). Chaque module génère un livrable Markdown structuré, exportable en PDF ou DOCX.
 
-Depuis la v2.0 enrichie, chaque génération injecte aussi dans le prompt système le `SKILL.md` correspondant au module utilisé. Le modèle Claude reçoit donc non seulement le cadrage court du module, mais aussi les règles métier, contraintes, interdictions, gabarits et validations propres au skill EVFC.
+Depuis la v2.1 standalone, chaque génération injecte aussi dans le prompt système le `SKILL.md` complet correspondant au module utilisé. Le modèle Claude reçoit donc non seulement le cadrage court du module, mais aussi les règles métier, contraintes, interdictions, gabarits et validations propres au skill EVFC.
 
 ### Chaîne de production recommandée
 
@@ -39,22 +39,25 @@ M7 intervient en aval pour automatiser l'exploitation ou la distribution des liv
 ## Fonctionnalités
 
 - **Génération IA** via l'API Anthropic, appelée directement depuis le navigateur.
-- **Injection des skills EVFC** : le `SKILL.md` du module actif est intégré au prompt système envoyé au modèle.
+- **Injection des skills EVFC** : le `SKILL.md` complet du module actif est intégré au prompt système envoyé au modèle, avec garde anti-réponse générique si un skill est attendu.
 - **Sélecteur de modèle Claude** dans l'en-tête : Haiku 4.5, Sonnet 4.6 par défaut, Opus 4.8.
 - **Catalogue centralisé des modèles** via `MODEL_IDS` / `MODEL_CATALOG`, utilisé par le sélecteur, l'accueil et les recommandations.
 - **Longueur configurable par module** : choix `max_tokens` parmi 6 000, 8 000, 12 000, 18 000, 24 000 ou 36 000 tokens, ou option « Pas de limite » (résolue vers le maximum du modèle sélectionné). Le sélecteur démarre sur une base neutre tant qu'aucune valeur n'est choisie.
 - **Créativité configurable par module** : choix `temperature` parmi 0.2, 0.5, 0.7 ou 1.0. Le sélecteur démarre sur une base neutre tant qu'aucune valeur n'est choisie.
 - **Bouton « Valeurs recommandées »** : charge explicitement la longueur et la créativité recommandées par module, sans restauration automatique depuis le navigateur.
+- **Bouton de génération dynamique** : le libellé affiche le modèle sélectionné et une jauge signale si les paramètres sont optimaux.
 - **Bouton "Copier le prompt"** avant génération : copie le prompt complet, incluant modèle, limite de tokens, temperature, system prompt enrichi et message utilisateur.
 - **Feedback visible en cas d'échec localStorage** : cache plein, stockage indisponible ou données locales illisibles ne restent plus silencieux.
 - **Enchaînement de modules** : résultats d'un module pré-remplissent automatiquement le suivant (M4 → M5, M1/M0/M2 → M3).
-- **Persistance des livrables** : les résultats générés sont conservés en `localStorage` et restent accessibles lors de la navigation entre modules.
-- **Bouton « 🗑️ Vider les livrables »** dans l'en-tête : efface, après confirmation, uniquement les livrables générés mis en cache (`evfc_result_cache`, `evfc_result_model_by_module`). La clé API et le modèle choisi sont conservés.
+- **Persistance des livrables** : les résultats générés sont conservés en `localStorage`, restent accessibles lors de la navigation entre modules et s'ouvrent d'abord en vue compacte avec actions d'export.
+- **Bouton « Vider »** dans l'en-tête : affiche un témoin et un compteur lorsqu'au moins un livrable est présent, puis efface après confirmation uniquement les livrables générés mis en cache (`evfc_result_cache`, `evfc_result_model_by_module`). La clé API et le modèle choisi sont conservés.
 - **Export PDF** avec en-tête Édumédiapole, tableaux Markdown et pagination.
-- **Export DOCX** via chargement dynamique de `docx.js`, avec styles de titres, tableaux et mise en page Édumédiapole.
+- **Export DOCX** via `docx.js`, avec styles de titres, tableaux et mise en page Édumédiapole.
 - **Export DOCX combiné multi-modules** : assemble plusieurs livrables mémorisés en un seul fichier Word.
 - **Google Forms** : génération de scripts Apps Script prêts à coller pour les grilles M5.
-- **Navigation chaînée** : fil d'Ariane, rail de chaîne, historique, raccourcis clavier.
+- **Référentiels intégrés** : Charte méthodologique EVFC-Kolb et Guide ERA complets, accessibles depuis la catégorie Référentiels.
+- **Sidebar en dropdowns** : catégories repliables avec ouverture douce, code couleur EVFC/Édumédiapole et catégorie Référentiels ouverte par défaut.
+- **Navigation chaînée** : fil d'Ariane, rail de chaîne colorisé, historique, raccourcis clavier.
 - **Mode clair / sombre**.
 - **Clé API** stockée dans le `localStorage` du navigateur, jamais transmise à un serveur tiers.
 
@@ -89,7 +92,7 @@ Au premier lancement, une modale demande la clé API Anthropic. Obtenir une clé
 | Modèles | Haiku 4.5 / Sonnet 4.6 / Opus 4.8 |
 | Rendu Markdown | [Marked.js 9.1.6](https://marked.js.org) |
 | Export PDF | [jsPDF 2.5.1](https://github.com/parallax/jsPDF) + html2canvas 1.4.1 |
-| Export DOCX | [docx.js 7.8.2](https://docx.js.org), chargé dynamiquement |
+| Export DOCX | [docx.js 7.8.2](https://docx.js.org), préchargé dans le standalone |
 | Stockage local | `localStorage` |
 | Backend | Aucun : appels API directs depuis le navigateur |
 
@@ -100,26 +103,16 @@ Au premier lancement, une modale demande la clé API Anthropic. Obtenir une clé
 ```text
 Pack_formateur_augmente-evfc/
 ├── index.html
+├── old_index.html
 ├── README.md
 ├── CHANGELOG.md
-├── PRD - Formateur Augmenté EVFC.md
-├── guide-reconstruction-evfc.md
-├── images/
-└── skills/
-    ├── INTRO-simulateur-edc-evfc/
-    ├── M0-progression-pedagogique-evfc/
-    ├── M1-evfc-sequence-designer/
-    ├── M2-ai-training-designer/
-    ├── M3-qcm-evfc-validator/
-    ├── M4-evfc-faire-scenario-generator/
-    ├── M5-grilles-criteriees/
-    ├── M6-era-loop-coach/
-    ├── M7-n8n-automatisation/
-    ├── orchestrateur-architecte-formateur-augmente/
-    └── _transverses/
+└── images/
+    ├── Badge_Aligne_EVFC.png
+    ├── Bannière_Edumédiapole_v3_medium.png
+    └── logo_WebApp.png
 ```
 
-Le contenu des `SKILL.md` module est embarqué dans `index.html` sous forme de table `EVFC_MODULE_SKILLS` afin de conserver le mode monofichier et l'ouverture directe dans le navigateur.
+`index.html` contient la version standalone v2.1. `old_index.html` conserve l'ancien index avant remplacement. Le contenu des `SKILL.md` module est embarqué dans `index.html` sous forme de table `EVFC_MODULE_SKILLS` afin de conserver le mode monofichier et l'ouverture directe dans le navigateur.
 
 ---
 
@@ -130,6 +123,9 @@ Le contenu des `SKILL.md` module est embarqué dans `index.html` sous forme de t
 | `evfc_anthropic_api_key` | Clé API Anthropic |
 | `evfc_model` | Modèle Claude sélectionné |
 | `evfc_result_cache` | Dernier livrable généré par module |
+| `evfc_result_model_by_module` | Métadonnées de génération par module : modèle, tokens, coût estimé |
+| `evfc_handoff_cache` | Données de préchargement entre modules |
+| `evfc_theme` | Mode clair ou sombre |
 | `sidebarCollapsed` | État du panneau latéral |
 
 ---
@@ -167,8 +163,9 @@ Repères de consommation de tokens mesurés par le développeur lors de tests de
 
 - L'application appelle Anthropic directement depuis le navigateur avec `anthropic-dangerous-direct-browser-access: true`.
 - La clé API est stockée en clair dans `localStorage`. C'est adapté à un usage personnel ou intranet, pas à un déploiement public multi-utilisateurs.
-- Les dépendances front sont chargées depuis CDN : l'application requiert une connexion internet.
-- Le contenu des skills est embarqué dans `index.html` : après modification d'un `SKILL.md`, il faut régénérer la table `EVFC_MODULE_SKILLS` pour que l'application reflète le changement.
+- L'application requiert une connexion internet pour appeler l'API Anthropic.
+- Le contenu des skills est embarqué dans `index.html` : après modification d'un `SKILL.md`, il faut régénérer la table `EVFC_MODULE_SKILLS` puis reconstruire le standalone pour que l'application reflète le changement.
+- `old_index.html` est une archive de l'ancienne version et n'est pas le point d'entrée actif.
 
 ---
 
