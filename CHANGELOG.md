@@ -8,6 +8,59 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 22 juin 2026 - Parcours prédéfinis et ajustements UI - Mis à jour avec Codex
+
+### 1. Page dédiée "Parcours prédéfinis"
+
+- Ajout d'une catégorie **Parcours prédéfinis** dans le menu latéral, placée après **Référentiels**
+- Ajout d'une page interne dédiée présentant les parcours issus du fichier `Parcours Prédéfinis.md`
+- Présentation des parcours sous forme de cartes avec :
+  - usage recommandé ;
+  - chaîne de modules cliquables ;
+  - logique pédagogique du parcours ;
+  - variantes éventuelles ;
+  - bouton de démarrage sur le premier module du parcours
+- Ajout des parcours principaux : découverte FPA, production séance terrain, progression depuis référentiel, évaluation complète EVFC, conception express, remédiation libre, formation IA/prompting, automatisation pédagogique, certification et production complète organisme
+
+### 2. Chaînage aligné sur le parcours sélectionné
+
+- Lorsqu'un parcours prédéfini est sélectionné, sa chaîne devient le contexte actif
+- Le bloc **Chaîne suivante** dans chaque module affiche désormais la suite exacte du parcours sélectionné
+- Ajout d'un indicateur de contexte dans le bloc : `Parcours : nom du parcours`
+- Le fil d'Ariane affiche le nom du parcours actif
+- Les modules ouverts hors parcours conservent leur chaîne générique habituelle
+
+### 3. Module M7 - indication de développement en cours
+
+- Ajout d'une mention **Dev en cours** uniquement sur les badges M7 dans les chaînes de parcours
+- Suppression de la mention au niveau global des cartes pour focaliser l'information sur le module concerné
+
+### 4. Sélecteurs longueur et créativité
+
+- Remplacement du libellé neutre **Base neutre** par **- Non défini -**
+- Application du nouveau libellé dans les sélecteurs, l'aperçu du prompt et l'aide intégrée
+
+### 5. Header et boutons d'action
+
+- Amélioration de la lisibilité du badge **EVFC** dans le header sur fond sombre :
+  - fond translucide ;
+  - bordure légère ;
+  - contraste renforcé des lettres ;
+  - ombre de texte
+- Réduction du bouton **Vider les livrables** à un libellé court : **Vider**
+- Ajout d'un indicateur visuel sur la corbeille lorsqu'au moins un livrable est présent dans le cache
+- Mise à jour automatique de cet indicateur après génération, restauration du cache au démarrage et vidage des livrables
+
+### 6. Normalisation typographique
+
+- Remplacement des tirets cadratins et demi-cadratins visibles par des tirets normaux dans :
+  - `index.html`
+  - `README.md`
+  - `Parcours Prédéfinis.md`
+- Vérification finale : plus aucune occurrence de `—` ou `–` dans ces fichiers
+
+---
+
 ## Session 21 juin 2026 — Recommandations développeur des modules — Mis à jour avec Codex
 
 ### 1. Modales modules — bouton "Valeurs recommandées"

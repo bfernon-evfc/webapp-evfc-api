@@ -1,4 +1,4 @@
-# Formateur Augmenté EVFC
+﻿# Formateur Augmenté EVFC
 
 Application web pédagogique pour formateurs FPA (Formateurs Professionnels d'Adultes), développée par **Bruno FERNON**. Elle génère des livrables de formation complets via l'API Anthropic Claude, directement depuis le navigateur, sans serveur ni backend.
 
@@ -42,13 +42,14 @@ M7 intervient en aval pour automatiser l'exploitation ou la distribution des liv
 - **Injection des skills EVFC** : le `SKILL.md` du module actif est intégré au prompt système envoyé au modèle.
 - **Sélecteur de modèle Claude** dans l'en-tête : Haiku 4.5, Sonnet 4.6 par défaut, Opus 4.8.
 - **Catalogue centralisé des modèles** via `MODEL_IDS` / `MODEL_CATALOG`, utilisé par le sélecteur, l'accueil et les recommandations.
-- **Longueur configurable par module** : choix `max_tokens` parmi 6 000, 8 000, 12 000, 18 000, 24 000 ou 36 000 tokens, ou option « Pas de limite » (résolue vers le maximum du modèle sélectionné), persisté dans `localStorage`.
-- **Créativité configurable par module** : choix `temperature` parmi 0.2, 0.5, 0.7 ou 1.0, persisté dans `localStorage`.
+- **Longueur configurable par module** : choix `max_tokens` parmi 6 000, 8 000, 12 000, 18 000, 24 000 ou 36 000 tokens, ou option « Pas de limite » (résolue vers le maximum du modèle sélectionné). Le sélecteur démarre sur une base neutre tant qu'aucune valeur n'est choisie.
+- **Créativité configurable par module** : choix `temperature` parmi 0.2, 0.5, 0.7 ou 1.0. Le sélecteur démarre sur une base neutre tant qu'aucune valeur n'est choisie.
+- **Bouton « Valeurs recommandées »** : charge explicitement la longueur et la créativité recommandées par module, sans restauration automatique depuis le navigateur.
 - **Bouton "Copier le prompt"** avant génération : copie le prompt complet, incluant modèle, limite de tokens, temperature, system prompt enrichi et message utilisateur.
 - **Feedback visible en cas d'échec localStorage** : cache plein, stockage indisponible ou données locales illisibles ne restent plus silencieux.
 - **Enchaînement de modules** : résultats d'un module pré-remplissent automatiquement le suivant (M4 → M5, M1/M0/M2 → M3).
 - **Persistance des livrables** : les résultats générés sont conservés en `localStorage` et restent accessibles lors de la navigation entre modules.
-- **Bouton « 🗑️ Vider les livrables »** dans l'en-tête : efface, après confirmation, uniquement les livrables générés mis en cache (`evfc_result_cache`, `evfc_result_model_by_module`). La clé API et les préférences (modèle, longueur, créativité) sont conservées.
+- **Bouton « 🗑️ Vider les livrables »** dans l'en-tête : efface, après confirmation, uniquement les livrables générés mis en cache (`evfc_result_cache`, `evfc_result_model_by_module`). La clé API et le modèle choisi sont conservés.
 - **Export PDF** avec en-tête Édumédiapole, tableaux Markdown et pagination.
 - **Export DOCX** via chargement dynamique de `docx.js`, avec styles de titres, tableaux et mise en page Édumédiapole.
 - **Export DOCX combiné multi-modules** : assemble plusieurs livrables mémorisés en un seul fichier Word.
@@ -101,7 +102,7 @@ Pack_formateur_augmente-evfc/
 ├── index.html
 ├── README.md
 ├── CHANGELOG.md
-├── PRD — Formateur Augmenté EVFC.md
+├── PRD - Formateur Augmenté EVFC.md
 ├── guide-reconstruction-evfc.md
 ├── images/
 └── skills/
@@ -129,8 +130,6 @@ Le contenu des `SKILL.md` module est embarqué dans `index.html` sous forme de t
 | `evfc_anthropic_api_key` | Clé API Anthropic |
 | `evfc_model` | Modèle Claude sélectionné |
 | `evfc_result_cache` | Dernier livrable généré par module |
-| `evfc_max_tokens_by_module` | Préférences de longueur par module |
-| `evfc_temperature_by_module` | Préférences de créativité par module |
 | `sidebarCollapsed` | État du panneau latéral |
 
 ---
@@ -175,4 +174,4 @@ Repères de consommation de tokens mesurés par le développeur lors de tests de
 
 ## Contact
 
-**Édumédiapole** — bfernon@edumediapole.net
+**Édumédiapole** - bfernon@edumediapole.net
