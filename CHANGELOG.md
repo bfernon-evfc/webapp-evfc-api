@@ -8,6 +8,31 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 24 juin 2026 - Corrections scripts Apps Script générés - Mis à jour avec Claude
+
+### 1. Correction script M3 - buildFormFromSheet
+
+- Suppression de la variable `feedback` créée dans la boucle des choix mais jamais utilisée
+- Remplacement de `mcItem.setGeneralFeedback()` (méthode inexistante sur `MultipleChoiceItem`) par les méthodes valides en mode Quiz :
+  - `mcItem.setFeedbackForCorrect()` pour le feedback en cas de bonne réponse
+  - `mcItem.setFeedbackForIncorrect()` pour le feedback en cas de mauvaise réponse
+- Erreur corrigée : `Exception: Sorry, this question type does not support the given operation` (Code.gs:163)
+
+### 2. Correction script M5 - creerFormulaire (Grille d'observation Formateur)
+
+- Correction de l'apostrophe non échappée dans la chaîne single-quoted `'En cours d'acquisition'`
+- Valeur corrigée en `'En cours d\'acquisition'`
+- Erreur corrigée : `SyntaxError: Unexpected identifier 'acquisition'` (Code.gs:30)
+
+### 3. Audit apostrophes - index.html et old_index.html
+
+- Vérification complète du respect de la règle : toute apostrophe dans une string `'...'` doit être échappée `\'`
+- `old_index.html` : aucune apostrophe non échappée dans les strings JS single-quoted
+- `index.html` (bundle) : loader JS propre ; 213 apostrophes encodées `'` dans le template JSON ; 2 occurrences suspectes identifiées comme étant dans des template literals (backticks) - conformes
+- Résultat : aucune correction nécessaire côté application
+
+---
+
 ## Session 22 juin 2026 - Publication standalone v2.1 dans le dépôt - Mis à jour avec Codex
 
 ### 1. Remplacement de l'application principale
@@ -46,7 +71,14 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 - Correction de l'export DOCX pour éviter les erreurs de génération liées aux paragraphes et blocs vides
 - Ajout d'un témoin dans le header indiquant quand des livrables existent et peuvent être vidés
 
-### 6. Sidebar et navigation
+### 6. Module M2 — Renommage
+
+- Renommage du module M2 : **Prompts Pédagogiques FPA** → **AI Training Designer**
+- Alignement sur le skill déclaré dans `SKILL.md` : `ai-training-designer`
+
+> **Contexte v2.0 → v2.1 :** en v2.0, M2 appelait le skill **`prompt-pedagogique-optimizer`** sous l'intitulé *Prompts Pédagogiques FPA*. Ce skill est conçu pour une utilisation avec le plugin Pack EVFC-FPA dans l'environnement Claude natif — il n'est pas adapté à l'environnement de l'application web. Le passage en v2.1 l'a remplacé par **`ai-training-designer`**, skill pensé pour fonctionner directement dans l'application, et a renommé le module en conséquence.
+
+### 7. Sidebar et navigation
 
 - Transformation des catégories de la sidebar en dropdowns à ouverture douce
 - Démarrage avec **Référentiels** déplié et les autres catégories repliées
