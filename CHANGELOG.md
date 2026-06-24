@@ -8,6 +8,40 @@ Convention projet : lorsqu'une session de modifications est réalisée depuis ce
 
 ---
 
+## Session 24 juin 2026 — Refonte visuelle UI : header, footer, sidebar, fond — Mis à jour avec Claude
+
+### 1. Footer aligné sur le header
+
+- Fond `var(--bg-header)` : même bleu navy `#002455` (clair) / `#020d1e` (sombre) que le header
+- Texte `var(--text-header)` : blanc `#ffffff` (clair) / quasi-blanc `#e8edf5` (sombre)
+- Bordure supérieure `rgba(255,255,255,.12)` pour séparation subtile sur fond bleu
+
+### 2. Fond du corps de l'application
+
+- `--bg` : `#f3f5f7` → `#E8F0FA` en mode clair — bleu clair doux, cohérent avec la palette navy du header/footer
+- Sidebar : `--bg-sidebar` : `#fafbff` → `#eef1f7` — gris-bleu légèrement plus soutenu pour contraster avec le fond
+
+### 3. Header — suppression du sous-titre et refonte des lettres EVFC
+
+- Suppression de `Édumédiapole · pack-evfc-fpa` (span `.brand-sub`)
+- Lettres **EVFC** dans le header scopées via `#app-header .evfc-*` pour ne pas affecter le corps :
+  - **Mode clair** : couleurs vives sur fond navy — E `#5BC8FF`, V `#4DDEA0`, F `#FF8040`, C `#B47EFF` — avec `font-weight: 800` et `font-size: 1.1em`
+  - **Mode sombre** : effet néon — même palette lumineuse + `text-shadow` double couche (glow 8 px + auréole diffuse 22 px)
+
+### 4. Sidebar — affiche promo aléatoire
+
+- Ajout de 4 affiches promotionnelles dans `images/` : `promo_formateur_de_demain.png`, `promo_La_Boucle_ERA.png`, `promo_module_evfc.png`, `promo_module_FAIRE.png`
+- Affichage d'une affiche après les catégories de la sidebar avec habillage premium :
+  - `border-radius: 14px`, `overflow: hidden`, `box-shadow` triple couche (ombre + bordure + reflet interne)
+  - Pseudo-élément `::before` : fine bordure blanche translucide (effet verre)
+  - Shine diagonal `rgba(255,255,255,.22)` via `.sidebar-promo-shine`
+  - Hover : montée de 2 px + ombre renforcée
+  - Mode sombre : ombre profonde `rgba(0,0,0,.55)` + bordure blanche très subtile
+- Séquence mélangée sans répétition (`nextPromoSrc()`) : algorithme Fisher-Yates sur un sac de 4 indices, garde anti-répétition au raccord de cycle
+- Rafraîchissement à chaque ouverture via `toggleSidebar()` : quand la sidebar passe de repliée à dépliée, l'attribut `src` de l'image est remplacé par l'affiche suivante de la séquence
+
+---
+
 ## Session 24 juin 2026 - Corrections scripts Apps Script générés - Mis à jour avec Claude
 
 ### 1. Correction script M3 - buildFormFromSheet
